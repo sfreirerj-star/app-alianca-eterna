@@ -2,13 +2,19 @@ import streamlit as st
 import json
 import os
 
-# Configuração da página e do ícone do navegador/PWA
+# Configuração limpa da página
 st.set_page_config(
-    page_title="Aliança Eterna - Oficial",
+    page_title="Aliança Eterna",
     page_icon="icone.png",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
+
+# Mantendo apenas o manifesto básico de PWA
+pwa_code = """
+<link rel="manifest" href="manifest.json">
+"""
+st.markdown(pwa_code, unsafe_allow_html=True)
 
 # Injetando propriedades de PWA para permitir adicionar à tela inicial do celular
 pwa_code = """

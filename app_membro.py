@@ -2,6 +2,24 @@ import streamlit as st
 import json
 import os
 
+# Configuração da página e do ícone do navegador/PWA
+st.set_page_config(
+    page_title="Aliança Eterna - Oficial",
+    page_icon="💍",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
+
+# Injetando propriedades de PWA para permitir adicionar à tela inicial do celular
+pwa_code = """
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aliança Eterna">
+"""
+st.markdown(pwa_code, unsafe_allow_html=True)
+
 ARQUIVO_DADOS = "dados_app.json"
 LINK_FORMULARIO_FIXO = "https://forms.gle/Y5kCJh5KnVPGhy8j7"
 

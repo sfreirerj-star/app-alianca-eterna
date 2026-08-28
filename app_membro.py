@@ -28,18 +28,12 @@ st.markdown(pwa_code, unsafe_allow_html=True)
 # --- GERENCIAMENTO DE DADOS (JSON) ---
 ARQUIVO_DADOS = "dados_app.json"
 
+# --- GERENCIAMENTO DE DADOS (TEXTOS FIXOS DIRETOS) ---
 def carregar_dados():
-    if os.path.exists(ARQUIVO_DADOS):
-        try:
-            with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    # Dados padrão com o link completo e oficial do Google Forms atualizado
     return {
         "recado_pastoral": "Igreja amada, é uma alegria estarmos juntos em mais uma semana de vitórias. Acompanhem nossa programação!",
         "devocional_titulo": "Aliança Inquebrável",
-        "devocional_texto": "'Melhor serem dois do que um...' - Eclesiastes 4:9",
+        "devocional_texto": "Melhor serem dois do que um, porque têm melhor paga do seu trabalho. - Eclesiastes 4:9",
         "link_formulario": "https://docs.google.com/forms/d/e/1FAIpQLScOhLmBiUcKmM6hYTGO9NExTeNGgLSyj-HaeT6QgAWsUilhcg/viewform?usp=header"
     }
 

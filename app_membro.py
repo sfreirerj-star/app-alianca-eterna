@@ -30,7 +30,17 @@ pwa_code = """
 <meta name="apple-mobile-web-app-title" content="Aliança Eterna">
 """
 st.markdown(pwa_code, unsafe_allow_html=True)
-
+# Ocultar o menu padrão do Streamlit, rodapé e o perfil/botão do canto inferior direito
+hide_streamlit_style = """
+<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+.viewerBadge_container__1QSob {display: none !important;}
+div[data-testid="stToolbar"] {display: none !important;}
+</style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 # Definição dos arquivos e links globais
 ARQUIVO_DADOS = "dados_app.json"
 LINK_FORMULARIO_FIXO = "https://docs.google.com/forms/d/e/1FAIpQLScOhLmBiUcKmM6hYTGO9NExTeNGgLSyj-HaeT6QgAWsUilhcg/viewform?usp=header"

@@ -30,14 +30,17 @@ pwa_code = """
 <meta name="apple-mobile-web-app-title" content="Aliança Eterna">
 """
 st.markdown(pwa_code, unsafe_allow_html=True)
-# Ocultar o menu padrão do Streamlit, rodapé e o perfil/botão do canto inferior direito
+# Ocultar completamente a barra de ferramentas, perfil e emblema do Streamlit do canto inferior
 hide_streamlit_style = """
 <style>
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
-.viewerBadge_container__1QSob {display: none !important;}
-div[data-testid="stToolbar"] {display: none !important;}
+div[data-testid="stToolbar"] {visibility: hidden; display: none !important;}
+div[data-testid="stDecoration"] {visibility: hidden; display: none !important;}
+div[class*="viewerBadge"] {visibility: hidden; display: none !important;}
+section[class*="viewerBadge"] {visibility: hidden; display: none !important;}
+.stAppDeployButton {display: none !important;}
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)

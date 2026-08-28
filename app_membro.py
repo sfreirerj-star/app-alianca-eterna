@@ -35,12 +35,12 @@ def carregar_dados():
                 return json.load(f)
         except Exception:
             pass
-    # Dados padrão caso o arquivo não exista
+    # Dados padrão com o link completo e oficial do Google Forms atualizado
     return {
         "recado_pastoral": "Igreja amada, é uma alegria estarmos juntos em mais uma semana de vitórias. Acompanhem nossa programação!",
         "devocional_titulo": "Aliança Inquebrável",
         "devocional_texto": "'Melhor serem dois do que um...' - Eclesiastes 4:9",
-        "link_formulario": "https://forms.gle/Y5kCJh5KnVpChy8J7"
+        "link_formulario": "https://docs.google.com/forms/d/e/1FAIpQLScOhLmBiUcKmM6hYTGO9NExTeNGgLSyj-HaeT6QgAWsUilhcg/viewform?usp=header"
     }
 
 dados = carregar_dados()
@@ -80,7 +80,8 @@ st.divider()
 st.markdown("### 📝 Participação e Cadastros")
 st.write("Deseja atualizar seus dados ou participar ativamente da nossa rede de casais? Clique no botão abaixo:")
 
-link_form = dados.get("link_formulario", "https://forms.gle/Y5kCJh5KnVpChy8J7")
+# Prioriza o link completo oficial salvo nos dados ou padrão
+link_form = dados.get("link_formulario", "https://docs.google.com/forms/d/e/1FAIpQLScOhLmBiUcKmM6hYTGO9NExTeNGgLSyj-HaeT6QgAWsUilhcg/viewform?usp=header")
 
 st.link_button(
     "👉 Preencher Formulário / Cadastro",

@@ -33,7 +33,7 @@ st.markdown(pwa_code, unsafe_allow_html=True)
 
 # Definição dos arquivos e links globais
 ARQUIVO_DADOS = "dados_app.json"
-LINK_FORMULARIO_FIXO = "https://forms.gle/Y5kCJh5KnVpChy8J7"
+LINK_FORMULARIO_FIXO = "https://docs.google.com/forms/d/e/1FAIpQLScOhLmBiUcKmM6hYTGO9NExTeNGgLSyj-HaeT6QgAWsUilhcg/viewform?usp=header"
 
 # Função para carregar os dados de forma segura
 def carregar_dados():

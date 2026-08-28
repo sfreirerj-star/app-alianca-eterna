@@ -2,7 +2,7 @@ import streamlit as st
 import json
 import os
 
-# Configuração única e essencial da página
+# Configuração única e essencial da página (deve ser sempre a primeira chamada)
 st.set_page_config(
     page_title="Aliança Eterna",
     page_icon="icone.png",
@@ -10,17 +10,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Injeção limpa do manifesto PWA
-pwa_code = """
-<link rel="manifest" href="manifest.json">
-"""
-st.markdown(pwa_code, unsafe_allow_html=True)
-
-# Variáveis globais
-ARQUIVO_DADOS = "dados_app.json"
-LINK_FORMULARIO_FIXO = "https://forms.gle/Y5kCJh5KnVpChy8J7"
-
-# Injetando propriedades de PWA para permitir adicionar à tela inicial do celular
+# Injeção limpa das tags de PWA para celular e ícone
 pwa_code = """
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icone.png">
@@ -32,72 +22,46 @@ pwa_code = """
 """
 st.markdown(pwa_code, unsafe_allow_html=True)
 
+# Definição dos arquivos e links globais
 ARQUIVO_DADOS = "dados_app.json"
-LINK_FORMULARIO_FIXO = "https://forms.gle/Y5kCJh5KnVPGhy8j7"
+LINK_FORMULARIO_FIXO = "https://forms.gle/Y5kCJh5KnVpChy8J7"
 
+# Função para carregar os dados de forma segura
 def carregar_dados():
     if os.path.exists(ARQUIVO_DADOS):
-        with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
-            return json.load(f)
-    else:
-        return {
-            "recado_pastor": "Igreja amada, é uma alegria estarmos juntos em mais uma semana de vitórias. Acompanhem nossa programação!",
-            "devocional_casais": "Tema da Semana: Aliança Inquebrável. 'Melhor serem dois do que um...' - Eclesiastes 4:9"
-        }
-
-# Configuração da página do aplicativo
-st.set_page_config(
-    page_title="Aliança Eterna - Oficial", 
-    page_icon="💍", 
-    layout="centered"
-)
-
-# Estilização visual limpa
-st.markdown("""
-    <style>
-    .main {
-        background-color: #f8f9fa;
+        try:
+            with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    # Dados padrão caso o arquivo não exista ou dê erro
+    return {
+        "recado_pastor": "Igreja amada, é uma alegria estarmos juntos em mais uma semana de vitórias. Acompanhem nossa programação!",
+        "devocional_casais": "Tema da Semana: Aliança Inquebrável. 'Melhor serem dois do que um...' - Eclesiastes 4:9"
     }
-    .stButton button {
-        width: 100%;
-        border-radius: 8px;
-        font-weight: bold;
-    }
-    </style>
-""", unsafe_allow_html=True)
 
-# Carrega os dados atualizados em tempo real
+# Carregando os dados para a sessão
 dados = carregar_dados()
 
-# Cabeçalho Visual do App
-st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>💍 Aliança Eterna</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #6B7280;'>Aplicativo Oficial da Família e do Ministério de Casais</p>", unsafe_allow_html=True)
-st.markdown("---")
+# --- INTERFACE DO APLICATIVO ---
+st.markdown("<h1 style='text-align: center; color: #1e3d59;'>Aliança Eterna</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #666;'>Aplicativo Oficial da Família e do Ministério de Casais</p>", unsafe_allow_html=True)
 
-# Seção 1: Recado do Pastor
-st.markdown("### 📢 Mensagem da Pastoreio")
-st.info(dados["recado_pastor"])
+st.divider()
 
-st.markdown("")
+# Seção do Recado
+st.subheader("📢 Recado da Pastoral")
+st.info(dados.get("recado_pastor", ""))
 
-# Seção 2: Devocional / Aliança Eterna
-st.markdown("### 🕊️ Ministério de Casais")
-st.success(dados["devocional_casais"])
+# Seção do Devocional
+st.subheader("📖 Devocional de Casais")
+st.success(dados.get("devocional_casais", ""))
 
-st.markdown("---")
+st.divider()
 
-# Seção 3: Botão de Ação / Cadastro com Aviso Gentil
-st.markdown("### 📝 Participação e Cadastros")
+# Seção de Participação e Cadastros
+st.subheader("📝 Participação e Cadastros")
+st.write("Deseja atualizar seus dados ou participar ativamente da nossa rede de casais? Clique no botão abaixo:")
 
-st.info(
-    "💍 **Quer fazer parte do Ministério de Casais?**\n\n"
-    "Este espaço de cadastro é dedicado exclusivamente aos casais (namorados com propósito, noivos e casados) que desejam fortalecer os laços da família segundo os princípios de Deus. "
-    "Se este é o seu caso, preencha o formulário abaixo para caminharmos juntos!"
-)
-
-# Apenas um único botão limpo e direto para o Google Forms
-st.link_button("💍 Participar do Ministério Aliança Eterna", LINK_FORMULARIO_FIXO, use_container_width=True)
-
-# Rodapé discreto do app
-st.markdown("---")
-st.markdown("<p style='text-align: center; color: #9CA3AF; font-size: 12px;'>Desenvolvido para a Igreja • Todos os direitos reservados</p>", unsafe_allow_html=True)
+if st.link_button("Acessar Formulário Oficial", LINK_FORMULARIO_FIXO):
+    pass

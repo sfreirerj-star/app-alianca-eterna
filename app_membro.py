@@ -5,7 +5,7 @@ import os
 # Configuração da página e do ícone do navegador/PWA
 st.set_page_config(
     page_title="Aliança Eterna - Oficial",
-    page_icon="💍",
+    page_icon="icone.png",
     layout="centered",
     initial_sidebar_state="collapsed"
 )

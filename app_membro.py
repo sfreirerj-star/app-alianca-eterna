@@ -2,7 +2,7 @@ import streamlit as st
 import json
 import os
 
-# Configuração limpa com emoji para testar se o app abre
+# Configuração estável com emoji elegante para casais
 st.set_page_config(
     page_title="Aliança Eterna",
     page_icon="💍",
@@ -10,10 +10,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Injeção limpa das tags de PWA
+# Tags de PWA atualizadas para o seu app
 pwa_code = """
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#1e3d59">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Aliança Eterna">

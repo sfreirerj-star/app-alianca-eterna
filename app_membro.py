@@ -2,7 +2,7 @@ import streamlit as st
 import json
 import os
 
-# Configuração essencial da página
+# Configuração única e essencial da página
 st.set_page_config(
     page_title="Aliança Eterna",
     page_icon="icone.png",
@@ -16,7 +16,7 @@ pwa_code = """
 """
 st.markdown(pwa_code, unsafe_allow_html=True)
 
-# Definição dos arquivos
+# Variáveis globais
 ARQUIVO_DADOS = "dados_app.json"
 LINK_FORMULARIO_FIXO = "https://forms.gle/Y5kCJh5KnVpChy8J7"
 

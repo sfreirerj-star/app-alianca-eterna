@@ -2,14 +2,23 @@ import streamlit as st
 import json
 import os
 
-# Configuração única e essencial da página (deve ser sempre a primeira chamada)
+# Configuração limpa com emoji para testar se o app abre
 st.set_page_config(
     page_title="Aliança Eterna",
-    page_icon="icone.png",
+    page_icon="💍",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
+# Injeção limpa das tags de PWA
+pwa_code = """
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aliança Eterna">
+"""
+st.markdown(pwa_code, unsafe_allow_html=True)
 # Injeção limpa das tags de PWA para celular e ícone
 pwa_code = """
 <link rel="manifest" href="manifest.json">

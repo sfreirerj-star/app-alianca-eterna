@@ -1,13 +1,13 @@
-import streamlit as st
 import json
 import os
+import streamlit as st
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
     page_title="Aliança Eterna",
     page_icon="💍",
     layout="centered",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
 )
 
 # --- INJEÇÃO DE METADADOS PWA E ESTILOS ---
@@ -25,38 +25,64 @@ header {visibility: hidden;}
 """
 st.markdown(pwa_code, unsafe_allow_html=True)
 
-# --- GERENCIAMENTO DE DADOS (JSON) ---
+# --- GERENCIAMENTO DE DADOS (LENDO DO JSON DO PAINEL) ---
 ARQUIVO_DADOS = "dados_app.json"
 
-# --- GERENCIAMENTO DE DADOS (TEXTOS FIXOS DIRETOS) ---
+
 def carregar_dados():
-    return {
-        "recado_pastoral": "Igreja amada, é uma alegria estarmos juntos em mais uma semana de vitórias. Acompanhem nossa programação!",
-        "devocional_titulo": "Aliança Inquebrável",
-        "devocional_texto": "Melhor serem dois do que um, porque têm melhor paga do seu trabalho. - Eclesiastes 4:9",
-        "link_formulario": "https://docs.google.com/forms/d/e/1FAIpQLScOhLmBiUcKmM6hYTGO9NExTeNGgLSyj-HaeT6QgAWsUilhcg/viewform?usp=header"
-    }
+  if os.path.exists(ARQUIVO_DADOS):
+    try:
+      with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
+        return json.load(f)
+    except:
+      pass
+  # Valores padrão de segurança caso o arquivo não seja encontrado
+  return {
+      "recado_pastoral": "Igreja amada, é uma alegria estarmos juntos em mais uma semana de vitórias. Acompanhem nossa programação!",
+      "devocional_titulo": "Aliança Inquebrável",
+      "devocional_texto": (
+          "Melhor serem dois do que um, porque têm melhor paga do seu"
+          " trabalho. - Eclesiastes 4:9"
+      ),
+      "recado_casais": "Fique ligado nos próximos encontros e programações da nossa rede.",
+      "link_formulario": "https://forms.gle/Y5kCJh5KnVP6hy8j7",
+  }
+
 
 dados = carregar_dados()
 
 # --- CABEÇALHO DO APLICATIVO ---
-st.markdown("<h1 style='text-align: center; color: #1e3d59;'>Aliança Eterna</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #555;'>Aplicativo Oficial da Família e do Ministério de Casais</p>", unsafe_allow_html=True)
+st.markdown(
+    "<h1 style='text-align: center; color: #1e3d59;'>Aliança Eterna</h1>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    "<p style='text-align: center; color: #555;'>Aplicativo Oficial da Família"
+    " e do Ministério de Casais</p>",
+    unsafe_allow_html=True,
+)
 st.divider()
 
 # --- SEÇÃO: RECADO DA PASTORAL ---
 st.markdown("### 📢 Recado da Pastoral")
-st.info(dados.get("recado_pastoral", "Seja bem-vindo ao nosso aplicativo!"))
+st.info(
+    dados.get(
+        "recado_pastoral", "Seja bem-vindo ao nosso aplicativo!"
+    )
+)
 
 # --- SEÇÃO: INSTAGRAM / TRANSMISSÕES ---
 st.markdown("### 🎥 Transmissões e Cultos Ao Vivo")
-st.markdown("Acompanhe nossos cultos, avisos e a programação oficial no Instagram da igreja:")
+st.markdown(
+    "Acompanhe nossos cultos, avisos e a programação oficial no Instagram da"
+    " igreja:"
+)
 
 st.link_button(
     "📸 Acessar Instagram @admucuripe",
     "https://www.instagram.com/admucuripe/",
     type="primary",
-    use_container_width=True
+    use_container_width=True,
 )
 
 st.divider()
@@ -64,26 +90,47 @@ st.divider()
 # --- SEÇÃO: DEVOCIONAL DE CASAIS ---
 st.markdown("### 📖 Devocional de Casais")
 titulo_devocional = dados.get("devocional_titulo", "Mensagem da Semana")
-texto_devocional = dados.get("devocional_texto", "Acompanhe nossas reflexões semanais.")
+texto_devocional = dados.get(
+    "devocional_texto", "Acompanhe nossas reflexões semanais."
+)
 
-st.success(f"**Tema da Semana: {titulo_devocional}**\n\n{texto_devocional}")
+st.success(
+    f"**Tema da Semana: {titulo_devocional}**\n\n{texto_devocional}"
+)
+
+# --- SEÇÃO: RECADO AOS CASAIS ---
+st.markdown("### 💌 Recado aos Casais")
+recado_casais_texto = dados.get(
+    "recado_casais",
+    "Avisos exclusivos para os casais em breve.",
+)
+st.info(recado_casais_texto)
 
 st.divider()
 
 # --- SEÇÃO: PARTICIPAÇÃO E CADASTROS ---
 st.markdown("### 📝 Participação e Cadastros")
-st.write("Deseja atualizar seus dados ou participar ativamente da nossa rede de casais? Clique no botão abaixo:")
+st.write(
+    "Deseja atualizar seus dados ou participar ativamente da nossa rede de"
+    " casais? Clique no botão abaixo:"
+)
 
-# Prioriza o link completo oficial salvo nos dados ou padrão
-link_form = dados.get("link_formulario", "https://docs.google.com/forms/d/e/1FAIpQLScOhLmBiUcKmM6hYTGO9NExTeNGgLSyj-HaeT6QgAWsUilhcg/viewform?usp=header")
+link_form = dados.get(
+    "link_formulario",
+    "https://forms.gle/Y5kCJh5KnVP6hy8j7",
+)
 
 st.link_button(
     "👉 Preencher Formulário / Cadastro",
     link_form,
     type="primary",
-    use_container_width=True
+    use_container_width=True,
 )
 
 # --- RODAPÉ DISCRETO ---
 st.markdown("---")
-st.markdown("<p style='text-align: center; font-size: 12px; color: gray;'>Ministério Aliança Eterna • Todos os direitos reservados</p>", unsafe_allow_html=True)
+st.markdown(
+    "<p style='text-align: center; font-size: 12px; color: gray;'>Ministério"
+    " Aliança Eterna • Todos os direitos reservados</p>",
+    unsafe_allow_html=True,
+)

@@ -27,8 +27,12 @@ def salvar_no_github(caminho_arquivo):
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github+json",
     }
+    
+    # Pega o SHA atual do arquivo no GitHub (obrigatório para atualizar arquivos existentes)
     response = requests.get(url, headers=headers)
-    sha = response.json().get("sha") if response.status_code == 200 else None
+    sha = None
+    if response.status_code == 200:
+      sha = response.json().get("sha")
 
     with open(caminho_arquivo, "rb") as f:
       conteudo_base64 = base64.b64encode(f.read()).decode("utf-8")
@@ -43,11 +47,11 @@ def salvar_no_github(caminho_arquivo):
 
     res = requests.put(url, headers=headers, json=payload)
     if res.status_code in [200, 201]:
-      st.success("Sincronizado com o GitHub automaticamente com sucesso!")
+      st.success("✅ Salvo localmente e sincronizado com o GitHub com sucesso!")
     else:
-      st.error(f"Erro na API do GitHub: {res.status_code} - {res.text}")
+      st.error(f"⚠️ Erro ao enviar para o GitHub ({res.status_code}): {res.text}")
   except Exception as e:
-    st.error(f"Erro ao conectar com o GitHub: {e}")
+    st.error(f"❌ Erro de conexão com o GitHub: {e}")
 
 
 def salvar_dados(dados):

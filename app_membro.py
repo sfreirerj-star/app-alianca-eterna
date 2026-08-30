@@ -5,7 +5,7 @@ import streamlit as st
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
     page_title="Aliança Eterna",
-    page_icon="💍",
+    page_icon="📖",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
@@ -31,103 +31,63 @@ ARQUIVO_DADOS = "dados_painel.json"
 
 def carregar_dados():
   if os.path.exists(ARQUIVO_DADOS):
-    try:
-      with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
+    with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
+      try:
         return json.load(f)
-    except:
-      pass
-  return {}
+      except:
+        pass
+  return {
+      "estudo_palavra": "Carregando...",
+      "recado_igreja": "Carregando...",
+      "devocional_casais": "Carregando...",
+      "recado_casais": "Carregando...",
+  }
 
 
 dados = carregar_dados()
 
-# --- CABEÇALHO DO APLICATIVO ---
-st.markdown(
-    "<h1 style='text-align: center; color: #1e3d59;'>Aliança Eterna</h1>",
-    unsafe_allow_html=True,
-)
-st.markdown(
-    "<p style='text-align: center; color: #555;'>Aplicativo Oficial da Família"
-    " e do Ministério de Casais</p>",
-    unsafe_allow_html=True,
-)
-st.divider()
+# --- INTERFACE DO APLICATIVO ---
+st.title("📖 Aliança Eterna")
+st.markdown("---")
 
-# --- SEÇÃO: RECADOS E AVISOS DO PASTOR ---
-st.markdown("### 📢 Recados e Avisos do Pastor")
-recado_pastor = dados.get(
-    "recado_igreja",
-    "Igreja amada, é uma alegria estarmos juntos em mais uma semana de vitórias.",
-)
-st.info(recado_pastor)
+# Seção de Estudo
+st.subheader("📖 Esboço / Estudo da Palavra")
+st.write(dados.get("estudo_palavra", "Nenhum estudo cadastrado no momento."))
 
-# --- SEÇÃO: ESBOÇO / ESTUDO DA PALAVRA ---
-st.markdown("### 📖 Esboço / Estudo da Palavra")
-estudo_palavra = dados.get(
-    "estudo_palavra",
-    "Acompanhe o estudo bíblico semanal disponibilizado pela pastoral.",
-)
-st.write(estudo_palavra)
+st.markdown("---")
 
-st.divider()
-
-# --- SEÇÃO: INSTAGRAM / TRANSMISSÕES ---
-st.markdown("### 🎥 Transmissões e Cultos Ao Vivo")
+# Seção de Transmissões
+st.subheader("📺 Transmissões e Cultos Ao Vivo")
 st.markdown(
     "Acompanhe nossos cultos, avisos e a programação oficial no Instagram da"
     " igreja:"
 )
 st.link_button(
-    "📸 Acessar Instagram @admucuripe",
-    "https://www.instagram.com/admucuripe/",
-    type="primary",
-    use_container_width=True,
+    "📸 Acessar Instagram @admucuripe", "https://instagram.com/admucuripe"
 )
 
-st.divider()
-
-# --- SEÇÃO: DEVOCIONAL DIÁRIO (CASAIS) ---
-st.markdown("### 🕊️ Devocional e Mensagens para os Casais")
-devocional_casais = dados.get(
-    "devocional_casais",
-    "🗓️ **Devocional Diário**\n\nAcompanhe as mensagens diárias preparadas"
-    " para edificação do seu lar.",
-)
-st.success(devocional_casais)
-
-# --- SEÇÃO: RECADO DIRETO AOS CASAIS ---
-st.markdown("### 💌 Recado Direto aos Casais")
-recado_casais = dados.get(
-    "recado_casais",
-    "Fique ligado nos próximos encontros e programações da nossa rede.",
-)
-st.info(recado_casais)
-
-st.divider()
-
-# --- SEÇÃO: PARTICIPAÇÃO E CADASTROS ---
-st.markdown("### 📝 Participação e Cadastros")
-st.write(
-    "Venha fazer parte do ministério de casais da igreja (Aliança Eterna), preencha"
-    " o formulário de cadastro aqui:"
-)
-
-link_form = dados.get(
-    "link_formulario",
-    "https://docs.google.com/forms/d/e/1FAIpQLScOhLmBiUcKmM6hYTGO9NExTeNGgLSyj-HaeT6QgAWsUilhcg/viewform?usp=header",
-)
-
-st.link_button(
-    "👉 Preencher Formulário / Cadastro",
-    link_form,
-    type="primary",
-    use_container_width=True,
-)
-
-# --- RODAPÉ DISCRETO ---
 st.markdown("---")
+
+# Seção de Casais
+st.subheader("💍 Devocional e Mensagens para os Casais")
+st.info(
+    dados.get(
+        "devocional_casais",
+        "Nenhum devocional cadastrado para hoje.",
+    )
+)
+
+st.subheader("📢 Recado Direto aos Casais")
+st.warning(
+    dados.get("recado_casais", "Nenhum recado específico no momento.")
+)
+
+st.markdown("---")
+st.subheader("📝 Participação e Cadastros")
 st.markdown(
-    "<p style='text-align: center; font-size: 12px; color: gray;'>Ministério"
-    " Aliança Eterna • Todos os direitos reservados</p>",
-    unsafe_allow_html=True,
+    "Venha fazer parte do ministério de casais da igreja (Aliança Eterna),"
+    " preencha o formulário de cadastro aqui:"
+)
+st.link_button(
+    "📝 Preencher Formulário / Cadastro", "https://forms.gle/exemplo"
 )

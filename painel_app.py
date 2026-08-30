@@ -13,7 +13,7 @@ st.set_page_config(
 ARQUIVO_DADOS = "dados_painel.json"
 
 # --- CONFIGURAÇÕES DE AUTOMAÇÃO DO GITHUB ---
-GITHUB_TOKEN = "ghp_BBU2EjN4tZRP8gmYoVPEDNWdHnKAM0l0CNk"
+GITHUB_TOKEN = "ghp_pxtIiOwRDPSCHzhJzbAvYFVgIiZjt4P0s4T"
 REPO_OWNER = "sfreirerj-star"
 REPO_NAME = "app-alianca-eterna"
 BRANCH = "main"

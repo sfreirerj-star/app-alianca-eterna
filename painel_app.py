@@ -41,9 +41,19 @@ def salvar_no_github(caminho_arquivo):
     if sha:
       payload["sha"] = sha
 
-    requests.put(url, headers=headers, json=payload)
+    res = requests.put(url, headers=headers, json=payload)
+    if res.status_code in [200, 201]:
+      st.success("Sincronizado com o GitHub automaticamente com sucesso!")
+    else:
+      st.error(f"Erro na API do GitHub: {res.status_code} - {res.text}")
   except Exception as e:
-    print(f"Erro ao sincronizar com o GitHub: {e}")
+    st.error(f"Erro ao conectar com o GitHub: {e}")
+
+
+def salvar_dados(dados):
+  with open(ARQUIVO_DADOS, "w", encoding="utf-8") as f:
+    json.dump(dados, f, ensure_ascii=False, indent=4)
+  salvar_no_github(ARQUIVO_DADOS)
 
 
 def buscar_devocional_automatico():
@@ -95,12 +105,6 @@ def carregar_dados():
       "devocional_casais": buscar_devocional_automatico(),
       "recado_casais": "",
   }
-
-
-def salvar_dados(dados):
-  with open(ARQUIVO_DADOS, "w", encoding="utf-8") as f:
-    json.dump(dados, f, ensure_ascii=False, indent=4)
-  salvar_no_github(ARQUIVO_DADOS)
 
 
 dados_atuais = carregar_dados()
@@ -182,7 +186,6 @@ elif tipo_painel == "Área Pastoral":
       dados_atuais["recado_igreja"] = novo_recado
       dados_atuais["destino_recado_pastor"] = dest_rec
       salvar_dados(dados_atuais)
-      st.success("Salvo e enviado para o GitHub com sucesso!")
 
   elif senha != "":
     st.sidebar.error("Senha incorreta.")
@@ -198,7 +201,6 @@ elif tipo_painel == "Liderança Aliança Eterna":
     if st.button("🔄 Atualizar Automático da Internet"):
       dados_atuais["devocional_casais"] = buscar_devocional_automatico()
       salvar_dados(dados_atuais)
-      st.success("Devocional atualizado e enviado para o GitHub!")
       st.rerun()
 
     novo_dev = st.text_area(
@@ -214,7 +216,6 @@ elif tipo_painel == "Liderança Aliança Eterna":
       dados_atuais["devocional_casais"] = novo_dev
       dados_atuais["recado_casais"] = novo_rec_casais
       salvar_dados(dados_atuais)
-      st.success("Seção de casais salva e enviada para o GitHub!")
 
   elif senha_casais != "":
     st.sidebar.error("Senha incorreta.")

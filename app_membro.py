@@ -108,7 +108,7 @@ st.divider()
 # --- SEÇÃO: PARTICIPAÇÃO E CADASTROS ---
 st.markdown("### 📝 Participação e Cadastros")
 st.write(
-    "Venha fazer parte do grupo de casais da igreja (aliança eterna), preencha"
+    "Venha fazer parte do ministério de casais da igreja (Aliança Eterna), preencha"
     " o formulário de cadastro aqui:"
 )
 

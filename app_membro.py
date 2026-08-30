@@ -54,17 +54,22 @@ st.markdown(
 st.divider()
 
 # --- SEÇÃO: RECADOS E AVISOS DO PASTOR ---
-recado_pastor = dados.get("recado_pastor", "")
-if recado_pastor:
-  st.markdown("### 📢 Recados e Avisos do Pastor")
-  st.info(recado_pastor)
+st.markdown("### 📢 Recados e Avisos do Pastor")
+recado_pastor = dados.get(
+    "recado_pastor",
+    "Igreja amada, é uma alegria estarmos juntos em mais uma semana de vitórias.",
+)
+st.info(recado_pastor)
 
 # --- SEÇÃO: ESBOÇO / ESTUDO DA PALAVRA ---
-estudo_palavra = dados.get("estudo_palavra", "")
-if estudo_palavra:
-  st.markdown("### 📖 Esboço / Estudo da Palavra")
-  st.write(estudo_palavra)
-  st.divider()
+st.markdown("### 📖 Esboço / Estudo da Palavra")
+estudo_palavra = dados.get(
+    "estudo_palavra",
+    "Acompanhe o estudo bíblico semanal disponibilizado pela pastoral.",
+)
+st.write(estudo_palavra)
+
+st.divider()
 
 # --- SEÇÃO: INSTAGRAM / TRANSMISSÕES ---
 st.markdown("### 🎥 Transmissões e Cultos Ao Vivo")
@@ -82,24 +87,29 @@ st.link_button(
 st.divider()
 
 # --- SEÇÃO: DEVOCIONAL DIÁRIO (CASAIS) ---
-devocional_casais = dados.get("devocional_casais", "")
-if devocional_casais:
-  st.markdown("### 🕊️ Devocional e Mensagens para os Casais")
-  st.success(devocional_casais)
+st.markdown("### 🕊️ Devocional e Mensagens para os Casais")
+devocional_casais = dados.get(
+    "devocional_casais",
+    "🗓️ **Devocional Diário**\n\nAcompanhe as mensagens diárias preparadas"
+    " para edificação do seu lar.",
+)
+st.success(devocional_casais)
 
 # --- SEÇÃO: RECADO DIRETO AOS CASAIS ---
-recado_casais = dados.get("recado_casais", "")
-if recado_casais:
-  st.markdown("### 💌 Recado Direto aos Casais")
-  st.info(recado_casais)
+st.markdown("### 💌 Recado Direto aos Casais")
+recado_casais = dados.get(
+    "recado_casais",
+    "Fique ligado nos próximos encontros e programações da nossa rede.",
+)
+st.info(recado_casais)
 
 st.divider()
 
 # --- SEÇÃO: PARTICIPAÇÃO E CADASTROS ---
 st.markdown("### 📝 Participação e Cadastros")
 st.write(
-    "Deseja atualizar seus dados ou participar ativamente da nossa rede de"
-    " casais? Clique no botão abaixo:"
+    "Venha fazer parte do grupo de casais da igreja (aliança eterna), preencha"
+    " o formulário de cadastro aqui:"
 )
 
 link_form = dados.get(

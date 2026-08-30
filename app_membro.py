@@ -36,17 +36,7 @@ def carregar_dados():
         return json.load(f)
     except:
       pass
-  # Valores padrão de segurança caso o arquivo não seja encontrado
-  return {
-      "recado_pastoral": "Igreja amada, é uma alegria estarmos juntos em mais uma semana de vitórias. Acompanhem nossa programação!",
-      "devocional_titulo": "Aliança Inquebrável",
-      "devocional_texto": (
-          "Melhor serem dois do que um, porque têm melhor paga do seu"
-          " trabalho. - Eclesiastes 4:9"
-      ),
-      "recado_casais": "Fique ligado nos próximos encontros e programações da nossa rede.",
-      "link_formulario": "https://forms.gle/Y5kCJh5KnVP6hy8j7",
-  }
+  return {}
 
 
 dados = carregar_dados()
@@ -63,13 +53,18 @@ st.markdown(
 )
 st.divider()
 
-# --- SEÇÃO: RECADO DA PASTORAL ---
-st.markdown("### 📢 Recado da Pastoral")
-st.info(
-    dados.get(
-        "recado_pastoral", "Seja bem-vindo ao nosso aplicativo!"
-    )
-)
+# --- SEÇÃO: RECADOS E AVISOS DO PASTOR ---
+recado_pastor = dados.get("recado_pastor", "")
+if recado_pastor:
+  st.markdown("### 📢 Recados e Avisos do Pastor")
+  st.info(recado_pastor)
+
+# --- SEÇÃO: ESBOÇO / ESTUDO DA PALAVRA ---
+estudo_palavra = dados.get("estudo_palavra", "")
+if estudo_palavra:
+  st.markdown("### 📖 Esboço / Estudo da Palavra")
+  st.write(estudo_palavra)
+  st.divider()
 
 # --- SEÇÃO: INSTAGRAM / TRANSMISSÕES ---
 st.markdown("### 🎥 Transmissões e Cultos Ao Vivo")
@@ -77,7 +72,6 @@ st.markdown(
     "Acompanhe nossos cultos, avisos e a programação oficial no Instagram da"
     " igreja:"
 )
-
 st.link_button(
     "📸 Acessar Instagram @admucuripe",
     "https://www.instagram.com/admucuripe/",
@@ -87,24 +81,17 @@ st.link_button(
 
 st.divider()
 
-# --- SEÇÃO: DEVOCIONAL DE CASAIS ---
-st.markdown("### 📖 Devocional de Casais")
-titulo_devocional = dados.get("devocional_titulo", "Mensagem da Semana")
-texto_devocional = dados.get(
-    "devocional_texto", "Acompanhe nossas reflexões semanais."
-)
+# --- SEÇÃO: DEVOCIONAL DIÁRIO (CASAIS) ---
+devocional_casais = dados.get("devocional_casais", "")
+if devocional_casais:
+  st.markdown("### 🕊️ Devocional e Mensagens para os Casais")
+  st.success(devocional_casais)
 
-st.success(
-    f"**Tema da Semana: {titulo_devocional}**\n\n{texto_devocional}"
-)
-
-# --- SEÇÃO: RECADO AOS CASAIS ---
-st.markdown("### 💌 Recado aos Casais")
-recado_casais_texto = dados.get(
-    "recado_casais",
-    "Avisos exclusivos para os casais em breve.",
-)
-st.info(recado_casais_texto)
+# --- SEÇÃO: RECADO DIRETO AOS CASAIS ---
+recado_casais = dados.get("recado_casais", "")
+if recado_casais:
+  st.markdown("### 💌 Recado Direto aos Casais")
+  st.info(recado_casais)
 
 st.divider()
 
@@ -117,7 +104,7 @@ st.write(
 
 link_form = dados.get(
     "link_formulario",
-    "https://forms.gle/Y5kCJh5KnVP6hy8j7",
+    "https://docs.google.com/forms/d/e/1FAIpQLScOhLmBiUcKmM6hYTGO9NExTeNGgLSyj-HaeT6QgAWsUilhcg/viewform?usp=header",
 )
 
 st.link_button(

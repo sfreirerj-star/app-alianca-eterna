@@ -2,7 +2,7 @@ import json
 import os
 import streamlit as st
 
-# --- CONFIGURAÇÃO DA PÁGINA ---
+# Configuração da página
 st.set_page_config(
     page_title="Aliança Eterna",
     page_icon="📖",
@@ -10,7 +10,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# --- INJEÇÃO DE METADADOS PWA E ESTILOS ---
+# Injeção de metadados PWA e estilos originais
 pwa_code = """
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1e3d59">
@@ -25,7 +25,7 @@ header {visibility: hidden;}
 """
 st.markdown(pwa_code, unsafe_allow_html=True)
 
-# --- GERENCIAMENTO DE DADOS (LENDO DO JSON DO PAINEL) ---
+# Gerenciamento de dados unificado com o Painel
 ARQUIVO_DADOS = "dados_painel.json"
 
 
@@ -46,17 +46,37 @@ def carregar_dados():
 
 dados = carregar_dados()
 
-# --- INTERFACE DO APLICATIVO ---
+# Estilos CSS originais para colorir e centralizar os botões
+st.markdown(
+    """
+    <style>
+    .stLinkButton > a {
+        display: block;
+        text-align: center;
+        background-color: #ff4b4b;
+        color: white;
+        border-radius: 5px;
+        padding: 0.5rem 1rem;
+        font-weight: bold;
+        text-decoration: none;
+    }
+    .stLinkButton > a:hover {
+        background-color: #ff2121;
+        color: white;
+    }
+    </style>
+""",
+    unsafe_allow_html=True,
+)
+
+# Conteúdo do App dos Membros
 st.title("📖 Aliança Eterna")
 st.markdown("---")
 
-# Seção de Estudo
 st.subheader("📖 Esboço / Estudo da Palavra")
-st.write(dados.get("estudo_palavra", "Nenhum estudo cadastrado no momento."))
+st.write(dados.get("estudo_palavra", "Nenhum estudo no momento."))
 
 st.markdown("---")
-
-# Seção de Transmissões
 st.subheader("📺 Transmissões e Cultos Ao Vivo")
 st.markdown(
     "Acompanhe nossos cultos, avisos e a programação oficial no Instagram da"
@@ -67,20 +87,11 @@ st.link_button(
 )
 
 st.markdown("---")
-
-# Seção de Casais
 st.subheader("💍 Devocional e Mensagens para os Casais")
-st.info(
-    dados.get(
-        "devocional_casais",
-        "Nenhum devocional cadastrado para hoje.",
-    )
-)
+st.info(dados.get("devocional_casais", "Nenhum devocional cadastrado."))
 
 st.subheader("📢 Recado Direto aos Casais")
-st.warning(
-    dados.get("recado_casais", "Nenhum recado específico no momento.")
-)
+st.warning(dados.get("recado_casais", "Nenhum recado específico."))
 
 st.markdown("---")
 st.subheader("📝 Participação e Cadastros")

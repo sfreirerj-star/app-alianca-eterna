@@ -25,8 +25,9 @@ header {visibility: hidden;}
 """
 st.markdown(pwa_code, unsafe_allow_html=True)
 
-# --- GERENCIAMENTO DE DADOS (LENDO DO JSON DO PAINEL) ---
-ARQUIVO_DADOS = "dados_app.json"
+# --- GERENCIAMENTO DE DADOS (LENDO DO MESMO JSON DO PAINEL) ---
+# Usando exatamente o mesmo arquivo que o painel_app.py salva!
+ARQUIVO_DADOS = "dados_painel.json"
 
 
 def carregar_dados():
@@ -56,7 +57,7 @@ st.divider()
 # --- SEÇÃO: RECADOS E AVISOS DO PASTOR ---
 st.markdown("### 📢 Recados e Avisos do Pastor")
 recado_pastor = dados.get(
-    "recado_pastor",
+    "recado_igreja",
     "Igreja amada, é uma alegria estarmos juntos em mais uma semana de vitórias.",
 )
 st.info(recado_pastor)
@@ -86,7 +87,7 @@ st.link_button(
 
 st.divider()
 
-# --- SEÇÃO: DEVOCIONAL DIÁRIO (CASAIS) ---
+# --- SEÇÃO: DEVOCIONAL DIÁRIO (CASAIS - AUTOMÁTICO DA INTERNET) ---
 st.markdown("### 🕊️ Devocional e Mensagens para os Casais")
 devocional_casais = dados.get(
     "devocional_casais",
@@ -108,7 +109,7 @@ st.divider()
 # --- SEÇÃO: PARTICIPAÇÃO E CADASTROS ---
 st.markdown("### 📝 Participação e Cadastros")
 st.write(
-    "Venha fazer parte do ministério de casais da igreja (Aliança Eterna), preencha"
+    "Venha fazer parte do grupo de casais da igreja (aliança eterna), preencha"
     " o formulário de cadastro aqui:"
 )
 

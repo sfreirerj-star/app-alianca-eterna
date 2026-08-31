@@ -12,5 +12,15 @@
     "recado": {
         "destino": "Apenas para os Casais",
         "texto": "Teste"
+    },
+    "casais_msg": {
+        "texto": "Teste final."
+    },
+    "devocional": {
+        "data": "31/08/2026",
+        "titulo": "Construindo uma Aliança Inabalável",
+        "versiculo": "\"Acima de tudo, porém, revistam-se do amor, que é o elo da perfeita união.\" — Colossenses 3:14",
+        "texto": "Fortalecendo a aliança conjugal através do perdão, do diálogo constante e dos princípios inegociáveis da Palavra de Deus em família.",
+        "link_video": "https://youtu.be/0Ev_B5S04YA"
     }
 }

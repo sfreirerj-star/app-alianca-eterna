@@ -6,7 +6,7 @@ import streamlit as st
 st.set_page_config(
     page_title="Aliança Eterna",
     page_icon="📖",
-    layout="centered", # Garante o layout centralizado
+    layout="centered",
     initial_sidebar_state="collapsed",
 )
 
@@ -21,50 +21,27 @@ pwa_code = """
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
-.stApp { background-color: #FFFFFF; } /* Fundo branco */
+.stApp { background-color: #FFFFFF; }
 </style>
 """
 st.markdown(pwa_code, unsafe_allow_html=True)
 
-# --- ESTILO CSS ESPECÍFICO PARA BOTÕES VERMELHOS E CENTRALIZADOS ---
-# Este bloco é o segredo para deixar os botões como na sua imagem
+# --- ESTILO CSS EXATO PARA OS BOTÕES (COMPACTOS E CENTRALIZADOS) ---
 st.markdown(
     """
     <style>
-    /* Estiliza o container do botão do Streamlit */
-    div.stButton > button {
-        display: block;               /* Faz o botão ocupar a largura disponível */
-        margin: 0 auto;               /* Centraliza o botão horizontalmente */
-        width: 50%;                   /* Define a largura do botão (ajuste conforme preferência) */
-        background-color: #ff4b4b;    /* Cor de fundo vermelha */
-        color: white;                 /* Cor do texto branca */
-        border: none;                 /* Remove borda padrão */
-        border-radius: 5px;           /* Bordas levemente arredondadas */
-        padding: 0.6rem 1.2rem;       /* Espaçamento interno */
-        font-weight: bold;            /* Texto em negrito */
-        font-size: 1rem;              /* Tamanho da fonte */
-        cursor: pointer;              /* Mostra o cursor de mão */
-    }
-    /* Efeito ao passar o mouse sobre o botão */
-    div.stButton > button:hover {
-        background-color: #ff2121;    /* Fundo vermelho mais escuro ao passar o mouse */
-        color: white;
-    }
-    
-    /* Estiliza o container do LinkButton do Streamlit para seguir o mesmo padrão */
     .stLinkButton > a {
         display: block;
-        text-align: center;           /* Centraliza o texto do link */
+        text-align: center;
         margin: 0 auto;
-        width: 50%;
+        width: 35%;                   /* Largura compacta igual ao print */
         background-color: #ff4b4b;
-        color: white !important;      /* !important para garantir a cor branca */
+        color: white !important;
         border-radius: 5px;
-        padding: 0.6rem 1.2rem;
+        padding: 0.5rem 1rem;
         font-weight: bold;
-        text-decoration: none;        /* Remove sublinhado do link */
+        text-decoration: none;
     }
-    /* Efeito ao passar o mouse sobre o LinkButton */
     .stLinkButton > a:hover {
         background-color: #ff2121;
         color: white !important;
@@ -76,7 +53,6 @@ st.markdown(
 )
 
 # --- GERENCIAMENTO DE DADOS (LENDO DO JSON DO PAINEL) ---
-# Certifique-se de que o arquivo 'dados_painel.json' existe no repositório
 ARQUIVO_DADOS = "dados_painel.json"
 
 
@@ -88,18 +64,16 @@ def carregar_dados():
       except:
         pass
   return {
-      "recado_pastoral": "Carregando... Seja bem-vindo!",
-      "estudo_palavra_titulo": "Carregando...",
-      "estudo_palavra_texto": "Carregando...",
-      "devocional_casais_titulo": "Carregando...",
-      "devocional_casais_texto": "Carregando...",
+      "estudo_palavra": "Carregando...",
+      "recado_igreja": "Carregando...",
+      "devocional_casais": "Carregando...",
+      "recado_casais": "Carregando...",
   }
 
 
 dados = carregar_dados()
 
 # --- INTERFACE DO APLICATIVO ---
-# Título Centralizado
 st.markdown(
     "<h1 style='text-align: center; color: #1e3d59;'>Aliança Eterna</h1>",
     unsafe_allow_html=True,
@@ -110,11 +84,11 @@ st.markdown(
 )
 st.markdown("---")
 
-# Seção: Recado da Pastoral
+# Seção: Recado da Pastoral / Geral
 st.subheader("📢 Recado da Pastoral")
 st.info(
-    dados.get("recado_pastoral", "Aguardando mensagem pastoral.")
-)  # Usando st.info para a caixa azul
+    dados.get("recado_igreja", "Nenhum recado no momento.")
+)
 
 st.markdown("---")
 
@@ -124,7 +98,6 @@ st.markdown(
     "Acompanhe nossos cultos, avisos e a programação oficial no Instagram da"
     " igreja:"
 )
-# O Streamlit automaticamente centraliza o st.link_button com o CSS acima
 st.link_button(
     "📸 Acessar Instagram @admucuripe", "https://instagram.com/admucuripe"
 )
@@ -133,18 +106,19 @@ st.markdown("---")
 
 # Seção: Devocional de Casais
 st.subheader("📖 Devocional de Casais")
-st.success(  # Usando st.success para a caixa verde
-    f"**{dados.get('devocional_casais_titulo', '')}**\n\n{dados.get('devocional_casais_texto', 'Aguardando devocional da semana.')}"
-)
+st.success(dados.get("devocional_casais", "Nenhum devocional cadastrado."))
+
+st.subheader("📢 Recado Direto aos Casais")
+st.warning(dados.get("recado_casais", "Nenhum recado específico para os casais."))
 
 st.markdown("---")
 
 # Seção: Participação e Cadastros
 st.subheader("📝 Participação e Cadastros")
 st.markdown(
-    "Deseja atualizar seus dados ou participar ativamente da nossa rede de casais? Clique no botão abaixo:"
+    "Deseja atualizar seus dados ou participar ativamente da nossa rede de"
+    " casais? Clique no botão abaixo:"
 )
-# O Streamlit automaticamente centraliza o st.link_button com o CSS acima
 st.link_button(
     "📝 Preencher Formulário / Cadastro", "https://forms.gle/exemplo"
 )

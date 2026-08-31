@@ -7,11 +7,11 @@
     "recado_casais": "Teste finalizado com sucesso!",
     "estudo": {
         "destino": "Toda a Igreja",
-        "texto": "Teste"
+        "texto": "Rompendo em fé."
     },
     "recado": {
         "destino": "Apenas para os Casais",
-        "texto": "Teste"
+        "texto": "Teste realizado com sucesso!"
     },
     "casais_msg": {
         "texto": "Teste final."

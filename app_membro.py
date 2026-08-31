@@ -111,13 +111,13 @@ if dev.get("link_video"):
 st.markdown("---")
 st.markdown("### 📝 Participação e Cadastros")
 st.write(
-    "Deseja atualizar seus dados ou participar ativamente da nossa rede de"
-    " casais? Clique no botão abaixo:"
+    "Deseja atualizar seus dados ou participar ativamente da nosso ministério de"
+    " casais? Basta apenas um dos cônjuges fazer o preenchimento. Clique no botão abaixo:"
 )
 st.markdown(
     """
 <div style="margin: 15px 0;">
-    <a href="https://forms.gle/exemplo_formulario" target="_blank" style="display:inline-block; padding:12px 24px; font-size:16px; font-weight:bold; color:white; background-color:#007BFF; text-align:center; text-decoration:none; border-radius:8px; box-shadow: 0px 4px 6px rgba(0,0,0,0.1);">
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLScOhLmBiUcKmM6hYTGO9NExTeNGgLSyj-HaeT6QgAWsUilhcg/viewform?usp=header" target="_blank" style="display:inline-block; padding:12px 24px; font-size:16px; font-weight:bold; color:white; background-color:#007BFF; text-align:center; text-decoration:none; border-radius:8px; box-shadow: 0px 4px 6px rgba(0,0,0,0.1);">
         📋 Preencher Formulário / Cadastro
     </a>
 </div>

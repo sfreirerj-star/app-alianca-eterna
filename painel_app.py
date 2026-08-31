@@ -1,22 +1,27 @@
 import base64
+from datetime import datetime
 import json
 import os
-from datetime import datetime
 import requests
 import streamlit as st
 
-# Configuração da página
+# --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
     page_title="Painel de Controle Oficial", page_icon="📖", layout="wide"
 )
 
 ARQUIVO_DADOS = "dados_painel.json"
 
-# --- CONFIGURAÇÕES DE AUTOMAÇÃO DO GITHUB ---
-GITHUB_TOKEN = "ghp_pxtIiOwRDPSCHzhJzbAvYFVgIiZjt4P0s4T"
+# --- CONFIGURAÇÕES DE AUTOMACAO DO GITHUB ---
+# Certifique-se de que este é o seu token NOVO (sem expiração e com escopo repo)
+GITHUB_TOKEN = "ghp_n52oYjwq2j4ngp7d8nuFgGf1nkYG3nVXM"
 REPO_OWNER = "sfreirerj-star"
 REPO_NAME = "app-alianca-eterna"
 BRANCH = "main"
+
+# --- SENHAS DE ACESSO ---
+SENHA_PASTORAL = "pastor123"  # Altere para a senha desejada da pastoral
+SENHA_CASAIS = "casais123"  # Altere para a senha desejada da liderança de casais
 
 
 def salvar_no_github(caminho_arquivo):
@@ -27,18 +32,21 @@ def salvar_no_github(caminho_arquivo):
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github+json",
     }
-    
+
     # Pega o SHA atual do arquivo no GitHub (obrigatório para atualizar arquivos existentes)
     response = requests.get(url, headers=headers)
     sha = None
     if response.status_code == 200:
       sha = response.json().get("sha")
 
+    # Lê o arquivo local e codifica em base64
     with open(caminho_arquivo, "rb") as f:
-      conteudo_base64 = base64.b64encode(f.read()).decode("utf-8")
+      conteudo_bytes = f.read()
+      conteudo_base64 = base64.b64encode(conteudo_bytes).decode("utf-8")
 
+    # Prepara o payload para o commit via API
     payload = {
-        "message": "Atualização automática de dados via Painel",
+        "message": f"Atualização automática de dados via Painel - {caminho_arquivo}",
         "content": conteudo_base64,
         "branch": BRANCH,
     }
@@ -48,178 +56,213 @@ def salvar_no_github(caminho_arquivo):
     res = requests.put(url, headers=headers, json=payload)
     if res.status_code in [200, 201]:
       st.success("✅ Salvo localmente e sincronizado com o GitHub com sucesso!")
+      return True
     else:
-      st.error(f"⚠️ Erro ao enviar para o GitHub ({res.status_code}): {res.text}")
+      st.error(f"❌ Erro ao enviar para o GitHub ({res.status_code}): {res.text}")
+      return False
   except Exception as e:
     st.error(f"❌ Erro de conexão com o GitHub: {e}")
-
-
-def salvar_dados(dados):
-  with open(ARQUIVO_DADOS, "w", encoding="utf-8") as f:
-    json.dump(dados, f, ensure_ascii=False, indent=4)
-  salvar_no_github(ARQUIVO_DADOS)
+    return False
 
 
 def buscar_devocional_automatico():
+  """Seleciona o devocional do dia com base na data do sistema"""
   try:
-    dia = datetime.now().timetuple().tm_yday
-    temas = [
-        (
-            "Eclesiastes 4:9-12",
-            "Melhor serem dois do que um... Cordão de três dobras não se"
-            " rebenta com facilidade.",
-        ),
-        (
-            "Efésios 5:25",
-            "Maridos, amem suas mulheres, como Cristo amou a igreja e se"
-            " entregou por ela.",
-        ),
-        (
-            "Colossenses 3:14",
-            "Acima de tudo, porém, revistam-se do amor, que é o elo da perfeita"
-            " união.",
-        ),
-        (
-            "1 Coríntios 13:4-7",
-            "O amor é paciente, o amor é bondoso. Não inveja, não se vangloria.",
-        ),
+    dia_do_ano = datetime.now().timetuple().tm_yday
+    devocionais = [
+        {
+            "titulo": "O Que Você Faz Quando NINGUÉM ESTÁ VENDO?",
+            "versiculo": (
+                '"Feliz é todo aquele que teme ao Senhor que anda nos seus'
+                ' caminhos" — Salmo 128:1'
+            ),
+            "texto": (
+                "A fé verdadeira é testada muito mais dentro de casa na"
+                " convivência diária do que no culto de domingo. A integridade"
+                " silenciosa e as decisões sem plateia definem o verdadeiro"
+                " alicerce do lar."
+            ),
+            "link_video": "https://youtu.be/0Ev_B5S04YA",
+        },
+        {
+            "titulo": "Construindo uma Aliança Inabalável",
+            "versiculo": (
+                '"Acima de tudo, porém, revistam-se do amor, que é o elo da'
+                ' perfeita união." — Colossenses 3:14'
+            ),
+            "texto": (
+                "Fortalecendo a aliança conjugal através do perdão, do diálogo"
+                " constante e dos princípios inegociáveis da Palavra de Deus"
+                " em família."
+            ),
+            "link_video": "https://youtu.be/0Ev_B5S04YA",
+        },
     ]
-    ref, texto = temas[dia % len(temas)]
-    return (
-        f"📅 **Devocional Diário ({datetime.now().strftime('%d/%m/%Y')})**\n\n*\"{texto}\"* —"
-        f" **{ref}**\n\nReflexão da Semana: Fortalecendo a aliança com amor e"
-        " diálogo."
-    )
-  except:
-    return "Reflexão da Semana: Melhor serem dois do que um."
+
+    dev_atual = devocionais[dia_do_ano % len(devocionais)]
+    data_hoje = datetime.now().strftime("%d/%m/%Y")
+
+    return {
+        "data": data_hoje,
+        "titulo": dev_atual["titulo"],
+        "versiculo": dev_atual["versiculo"],
+        "texto": dev_atual["texto"],
+        "link_video": dev_atual["link_video"],
+    }
+  except Exception:
+    return {
+        "data": datetime.now().strftime("%d/%m/%Y"),
+        "titulo": "Devocional Diário da Família",
+        "versiculo": '"Melhor serem dois do que um..." — Eclesiastes 4:9',
+        "texto": "Reflexão diária para fortalecimento do lar e da vida conjugal.",
+        "link_video": "https://youtu.be/0Ev_B5S04YA",
+    }
 
 
-def carregar_dados():
-  if os.path.exists(ARQUIVO_DADOS):
-    with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
-      try:
-        return json.load(f)
-      except:
-        pass
-  return {
-      "estudo_palavra": "",
-      "destino_estudo": "Toda a Igreja",
-      "recado_igreja": "",
-      "destino_recado_pastor": "Toda a Igreja",
-      "devocional_casais": buscar_devocional_automatico(),
-      "recado_casais": "",
+# Carrega dados atuais ou gera o padrão do dia
+if os.path.exists(ARQUIVO_DADOS):
+  with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
+    dados = json.load(f)
+else:
+  dados = {
+      "estudo": {"destino": "Toda a Igreja", "texto": "Teste inicial."},
+      "recado": {"destino": "Toda a Igreja", "texto": "Teste inicial."},
+      "casais_msg": {"texto": "Bem-vindos ao Ministério de Casais Aliança Eterna!"},
+      "devocional": buscar_devocional_automatico(),
   }
 
+# --- INTERFACE DO PAINEL ---
+st.title("Painel de Controle: App Oficial")
+st.write("Área de gestão restrita para a liderança e pastoral da igreja.")
 
-dados_atuais = carregar_dados()
-
-st.sidebar.title("Navegação")
-tipo_painel = st.sidebar.selectbox(
+menu_lateral = st.sidebar.selectbox(
     "Selecione o Painel de Acesso:",
-    [
-        "Membro (Visualização)",
-        "Área Pastoral",
-        "Liderança Aliança Eterna",
-    ],
+    ["Membro (Visualização)", "Área Pastoral", "Liderança de Casais"],
 )
 
-st.title("Painel de Controle: App Oficial")
-st.markdown("Área de gestão restrita para a liderança e pastoral da igreja.")
-st.markdown("---")
+if menu_lateral == "Área Pastoral":
+  st.header("🔒 Acesso Restrito - Área Pastoral")
+  senha_digitada = st.text_input("Senha Pastoral", type="password")
 
-if tipo_painel == "Membro (Visualização)":
-  st.info("Visão geral dos recados e estudos cadastrados.")
+  if senha_digitada == SENHA_PASTORAL:
+    st.success("Acesso autorizado!")
 
-  st.subheader("📖 Estudo da Palavra / Sugestão Pastoral")
-  st.caption(f"Direcionado para: **{dados_atuais.get('destino_estudo')}**")
-  st.write(
-      dados_atuais.get("estudo_palavra")
-      or "Nenhum estudo cadastrado no momento."
-  )
-
-  st.subheader("📢 Recado Geral / Pastoral")
-  st.caption(
-      f"Direcionado para: **{dados_atuais.get('destino_recado_pastor')}**"
-  )
-  st.write(
-      dados_atuais.get("recado_igreja") or "Nenhum recado no momento."
-  )
-
-  st.subheader("💍 Mensagem e Direcionamento para os Casais")
-  st.write(dados_atuais.get("devocional_casais"))
-  st.write(
-      dados_atuais.get("recado_casais")
-      or "Nenhum recado específico para os casais."
-  )
-
-elif tipo_painel == "Área Pastoral":
-  st.sidebar.subheader("🔒 Acesso Restrito")
-  senha = st.sidebar.text_input("Senha Pastoral", type="password")
-
-  if senha == "igreja123":
-    st.success("Acesso Pastoral Liberado!")
     st.header("Esboço / Estudo da Palavra")
-
-    dest_est = st.radio(
+    destino_estudo = st.radio(
         "Destino do estudo:",
         ["Toda a Igreja", "Apenas para os Casais"],
-        index=0
-        if dados_atuais.get("destino_estudo") == "Toda a Igreja"
-        else 1,
+        key="dest_est",
     )
-    novo_estudo = st.text_area(
-        "Sugestão de Estudo", value=dados_atuais.get("estudo_palavra", "")
+    texto_estudo = st.text_area(
+        "Sugestão de Estudo",
+        value=dados.get("estudo", {}).get("texto", ""),
+        height=100,
     )
 
-    st.markdown("---")
     st.header("Recados e Avisos do Pastor")
-    dest_rec = st.radio(
+    destino_recado = st.radio(
         "Destino do recado:",
         ["Toda a Igreja", "Apenas para os Casais"],
-        index=0
-        if dados_atuais.get("destino_recado_pastor") == "Toda a Igreja"
-        else 1,
+        key="dest_rec",
     )
-    novo_recado = st.text_area(
-        "Mensagem ou Aviso", value=dados_atuais.get("recado_igreja", "")
+    texto_recado = st.text_area(
+        "Mensagem ou Aviso",
+        value=dados.get("recado", {}).get("texto", ""),
+        height=100,
     )
 
     if st.button("Salvar Alterações Pastorais"):
-      dados_atuais["estudo_palavra"] = novo_estudo
-      dados_atuais["destino_estudo"] = dest_est
-      dados_atuais["recado_igreja"] = novo_recado
-      dados_atuais["destino_recado_pastor"] = dest_rec
-      salvar_dados(dados_atuais)
+      dados["estudo"] = {"destino": destino_estudo, "texto": texto_estudo}
+      dados["recado"] = {"destino": destino_recado, "texto": texto_recado}
 
-  elif senha != "":
-    st.sidebar.error("Senha incorreta.")
+      with open(ARQUIVO_DADOS, "w", encoding="utf-8") as f:
+        json.dump(dados, f, ensure_ascii=False, indent=4)
 
-elif tipo_painel == "Liderança Aliança Eterna":
-  st.sidebar.subheader("🔒 Acesso Restrito")
-  senha_casais = st.sidebar.text_input("Senha Casais", type="password")
+      salvar_no_github(ARQUIVO_DADOS)
+  elif senha_digitada:
+    st.error("❌ Senha incorreta!")
+  else:
+    st.info("Digite a senha pastoral para liberar a edição.")
 
-  if senha_casais == "igreja123":
-    st.success("Acesso da Liderança de Casais Liberado!")
-    st.header("Devocional e Mensagens para os Casais")
+elif menu_lateral == "Liderança de Casais":
+  st.header("🔒 Acesso Restrito - Ministério de Casais")
+  senha_digitada_casais = st.text_input("Senha Liderança de Casais", type="password")
 
-    if st.button("🔄 Atualizar Automático da Internet"):
-      dados_atuais["devocional_casais"] = buscar_devocional_automatico()
-      salvar_dados(dados_atuais)
-      st.rerun()
+  if senha_digitada_casais == SENHA_CASAIS:
+    st.success("Acesso autorizado!")
 
-    novo_dev = st.text_area(
-        "Devocional / Reflexão",
-        value=dados_atuais.get("devocional_casais", ""),
-    )
-    novo_rec_casais = st.text_area(
-        "Aviso Exclusivo para os Casais",
-        value=dados_atuais.get("recado_casais", ""),
+    texto_casais = st.text_area(
+        "Recado / Mensagem Exclusiva para o Casal",
+        value=dados.get("casais_msg", {}).get("texto", ""),
+        height=100,
     )
 
-    if st.button("Atualizar Seção de Casais"):
-      dados_atuais["devocional_casais"] = novo_dev
-      dados_atuais["recado_casais"] = novo_rec_casais
-      salvar_dados(dados_atuais)
+    st.subheader("Gerenciamento do Devocional Diário")
+    dev_atual = dados.get("devocional", buscar_devocional_automatico())
 
-  elif senha_casais != "":
-    st.sidebar.error("Senha incorreta.")
+    edit_titulo = st.text_input(
+        "Título do Devocional", value=dev_atual.get("titulo", "")
+    )
+    edit_versiculo = st.text_input(
+        "Versículo Base", value=dev_atual.get("versiculo", "")
+    )
+    edit_texto = st.text_area(
+        "Reflexão / Mensagem", value=dev_atual.get("texto", ""), height=100
+    )
+    edit_link = st.text_input(
+        "Link do Vídeo (YouTube)", value=dev_atual.get("link_video", "")
+    )
+
+    if st.button("Salvar Alterações de Casais"):
+      dados["casais_msg"] = {"texto": texto_casais}
+      dados["devocional"] = {
+          "data": datetime.now().strftime("%d/%m/%Y"),
+          "titulo": edit_titulo,
+          "versiculo": edit_versiculo,
+          "texto": edit_texto,
+          "link_video": edit_link,
+      }
+
+      with open(ARQUIVO_DADOS, "w", encoding="utf-8") as f:
+        json.dump(dados, f, ensure_ascii=False, indent=4)
+
+      salvar_no_github(ARQUIVO_DADOS)
+  elif senha_digitada_casais:
+    st.error("❌ Senha incorreta!")
+  else:
+    st.info("Digite a senha da liderança de casais para liberar a edição.")
+
+else:
+  st.subheader("Visão Geral do Aplicativo")
+
+  estudo = dados.get("estudo", {})
+  recado = dados.get("recado", {})
+  casais_msg = dados.get("casais_msg", {})
+  dev = dados.get("devocional", buscar_devocional_automatico())
+
+  st.markdown("---")
+  st.markdown("### 📖 Estudo da Palavra / Sugestão Pastoral")
+  st.write(f"**Destino:** {estudo.get('destino', 'Toda a Igreja')}")
+  st.info(estudo.get("texto") or "Nenhum estudo cadastrado no momento.")
+
+  st.markdown("---")
+  st.markdown("### 📢 Recados e Avisos Pastorais")
+  st.write(f"**Destino:** {recado.get('destino', 'Toda a Igreja')}")
+  st.success(recado.get("texto") or "Nenhum recado cadastrado no momento.")
+
+  st.markdown("---")
+  st.markdown("### 💍 Ministério de Casais (Aliança Eterna)")
+  st.warning(
+      casais_msg.get("texto") or "Nenhum recado para casais cadastrado."
+  )
+
+  st.markdown("#### 📅 Devocional Diário")
+  st.write(f"**Data:** {dev.get('data')}")
+  st.markdown(f"**{dev.get('titulo')}**")
+  st.markdown(f"*{dev.get('versiculo')}*")
+  st.write(dev.get("texto"))
+
+  if dev.get("link_video"):
+    st.markdown(
+        f"[▶️ Assistir ao Vídeo do Devocional]({dev.get('link_video')})"
+    )

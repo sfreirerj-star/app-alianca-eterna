@@ -1,122 +1,105 @@
+from datetime import datetime
 import json
 import os
 import streamlit as st
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
-    page_title="Aliança Eterna",
-    page_icon="📖",
-    layout="centered",
-    initial_sidebar_state="collapsed",
+    page_title="Aliança Eterna", page_icon="📖", layout="centered"
 )
 
-# --- INJEÇÃO DE METADADOS PWA E ESTILOS GERAIS ---
-pwa_code = """
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1e3d59">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Aliança Eterna">
-<style>
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
-header {visibility: hidden;}
-.stApp { background-color: #FFFFFF; }
-</style>
-"""
-st.markdown(pwa_code, unsafe_allow_html=True)
-
-# --- ESTILO CSS PARA OS BOTÕES (LARGURA TOTAL E CENTRALIZADOS) ---
-st.markdown(
-    """
-    <style>
-    .stLinkButton > a {
-        display: block;
-        text-align: center;
-        margin: 0 auto;
-        width: 100%;                  /* Ocupa toda a largura alinhada */
-        background-color: #ff4b4b;
-        color: white !important;
-        border-radius: 5px;
-        padding: 0.6rem 1rem;
-        font-weight: bold;
-        text-decoration: none;
-    }
-    .stLinkButton > a:hover {
-        background-color: #ff2121;
-        color: white !important;
-        text-decoration: none;
-    }
-    </style>
-""",
-    unsafe_allow_html=True,
-)
-
-# --- GERENCIAMENTO DE DADOS (LENDO DO JSON DO PAINEL) ---
 ARQUIVO_DADOS = "dados_painel.json"
 
 
-def carregar_dados():
-  if os.path.exists(ARQUIVO_DADOS):
-    with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
-      try:
-        return json.load(f)
-      except:
-        pass
+def buscar_devocional_automatico():
+  """Garante um padrão caso o JSON esteja vazio"""
   return {
-      "estudo_palavra": "Carregando...",
-      "recado_igreja": "Carregando...",
-      "devocional_casais": "Carregando...",
-      "recado_casais": "Carregando...",
+      "data": datetime.now().strftime("%d/%m/%Y"),
+      "titulo": "Construindo uma Aliança Inabalável",
+      "versiculo": (
+          '"Acima de tudo, porém, revistam-se do amor, que é o elo da perfeita'
+          ' união." — Colossenses 3:14'
+      ),
+      "texto": (
+          "Fortalecendo a aliança conjugal através do perdão, do diálogo"
+          " constante e dos princípios inegociáveis da Palavra de Deus em"
+          " família."
+      ),
+      "link_video": "https://youtu.be/0Ev_B5S04YA",
   }
 
 
-dados = carregar_dados()
+# --- CARREGAMENTO DE DADOS ---
+if os.path.exists(ARQUIVO_DADOS):
+  with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
+    dados = json.load(f)
+else:
+  dados = {}
 
-# --- INTERFACE DO APLICATIVO ---
-st.markdown(
-    "<h1 style='text-align: center; color: #1e3d59;'>Aliança Eterna</h1>",
-    unsafe_allow_html=True,
-)
-st.markdown(
-    "<p style='text-align: center; font-size: 1.1em;'>Aplicativo Oficial da Família e do Ministério de Casais</p>",
-    unsafe_allow_html=True,
-)
+# Recupera os blocos salvos no painel
+estudo = dados.get("estudo", {})
+recado = dados.get("recado", {})
+casais_msg = dados.get("casais_msg", {})
+
+# Puxa o devocional do JSON ou gera o do dia atual
+dev_salvo = dados.get("devocional", {})
+if isinstance(dev_salvo, dict) and dev_salvo.get("titulo"):
+  dev = dev_salvo
+else:
+  dev = buscar_devocional_automatico()
+
+
+# --- INTERFACE DO APLICATIVO DOS MEMBROS ---
+st.title("Aliança Eterna")
+st.markdown("*Aplicativo Oficial da Família e do Ministério de Casais*")
 st.markdown("---")
 
-# Seção: Recado da Pastoral
-st.subheader("📢 Recado da Pastoral")
-st.info(dados.get("recado_igreja", "Nenhum recado no momento."))
+# 1. Estudo da Palavra
+if estudo.get("texto"):
+  st.markdown("### 📖 Estudo da Palavra")
+  destino_estudo = estudo.get("destino", "Toda a Igreja")
+  st.caption(f"📌 **Destino:** {destino_estudo}")
+  st.info(estudo.get("texto"))
+  st.markdown("---")
 
+# 2. Recados e Avisos Pastorais
+if recado.get("texto"):
+  st.markdown("### 📢 Recados e Avisos Pastorais")
+  destino_recado = recado.get("destino", "Toda a Igreja")
+  st.caption(f"📌 **Destino:** {destino_recado}")
+  st.success(recado.get("texto"))
+  st.markdown("---")
+
+# 3. Recado Direto aos Casais (Ministério de Casais)
+if casais_msg.get("texto"):
+  st.markdown("### 💍 Recado Direto aos Casais")
+  st.caption("📌 **Destino:** Apenas para os Casais")
+  st.warning(casais_msg.get("texto"))
+  st.markdown("---")
+
+# 4. Devocional Diário / Casais (Sincronizado com Vídeo do YouTube)
+st.markdown("### 📅 Devocional de Casais")
+st.write(
+    f"**Data:** {dev.get('data', datetime.now().strftime('%d/%m/%Y'))}"
+)
+st.markdown(f"#### {dev.get('titulo')}")
+st.markdown(f"*{dev.get('versiculo')}*")
+st.write(dev.get("texto"))
+
+if dev.get("link_video"):
+  st.markdown("---")
+  st.markdown(
+      f"👉 **[Assistir ao Vídeo do Devocional no"
+      f" YouTube]({dev.get('link_video')})**"
+  )
+
+# Rodapé de Redes Sociais / Acesso
 st.markdown("---")
-
-# Seção: Transmissões e Cultos Ao Vivo
-st.subheader("📺 Transmissões e Cultos Ao Vivo")
+st.markdown("### 🌐 Redes Sociais e Contato")
 st.markdown(
     "Acompanhe nossos cultos, avisos e a programação oficial no Instagram da"
     " igreja:"
 )
 st.link_button(
-    "📸 Acessar Instagram @admucuripe", "https://instagram.com/admucuripe"
-)
-
-st.markdown("---")
-
-# Seção: Devocional de Casais
-st.subheader("📖 Devocional de Casais")
-st.success(dados.get("devocional_casais", "Nenhum devocional cadastrado."))
-
-st.subheader("📢 Recado Direto aos Casais")
-st.warning(dados.get("recado_casais", "Nenhum recado específico para os casais."))
-
-st.markdown("---")
-
-# Seção: Participação e Cadastros
-st.subheader("📝 Participação e Cadastros")
-st.markdown(
-    "Deseja atualizar seus dados ou participar ativamente da nossa rede de"
-    " casais? Clique no botão abaixo:"
-)
-st.link_button(
-    "📝 Preencher Formulário / Cadastro", "https://forms.gle/exemplo"
+    "Acessar Instagram @admucuripe", "https://instagram.com/admucuripe"
 )

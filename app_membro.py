@@ -93,7 +93,19 @@ if dev.get("link_video"):
       f" YouTube]({dev.get('link_video')})**"
   )
 
-# Rodapé de Redes Sociais / Acesso
+# 5. Participação e Cadastros (Ministério de Casais)
+st.markdown("---")
+st.markdown("### 📝 Participação e Cadastros")
+st.write(
+    "Deseja atualizar seus dados ou participar ativamente da nossa rede de"
+    " casais? Clique no botão abaixo:"
+)
+st.link_button(
+    "Preencher Formulário / Cadastro",
+    "https://forms.gle/exemplo_formulario",
+)  # Substitua pelo link real do seu formulário se necessário
+
+# 6. Rodapé de Redes Sociais / Contato
 st.markdown("---")
 st.markdown("### 🌐 Redes Sociais e Contato")
 st.markdown(

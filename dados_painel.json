@@ -1,8 +1,16 @@
 {
-    "estudo_palavra": "Deus está no controle de tudo.",
+    "estudo_palavra": "Teste!",
     "destino_estudo": "Toda a Igreja",
-    "recado_igreja": "A família é a base da igreja, por isso é bom que os irmãos vivam em união.",
-    "destino_recado_pastor": "Apenas para os Casais",
+    "recado_igreja": "Teste!",
+    "destino_recado_pastor": "Toda a Igreja",
     "devocional_casais": "📅 **Devocional Diário (30/08/2026)**\n\n*\"Acima de tudo, porém, revistam-se do amor, que é o elo da perfeita união.\"* — **Colossenses 3:14**\n\nReflexão da Semana para Edição do Lar: Fortalecendo a aliança conjugal através do perdão, do diálogo e dos princípios inegociáveis da Palavra de Deus.",
-    "recado_casais": "Estamos programando um novo evento para os casais da nossa igreja, fique ligado que breve voltaremos com maiores informações."
+    "recado_casais": "Teste finalizado com sucesso!",
+    "estudo": {
+        "destino": "Toda a Igreja",
+        "texto": "Teste"
+    },
+    "recado": {
+        "destino": "Apenas para os Casais",
+        "texto": "Teste"
+    }
 }

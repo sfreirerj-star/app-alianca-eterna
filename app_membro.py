@@ -26,7 +26,7 @@ header {visibility: hidden;}
 """
 st.markdown(pwa_code, unsafe_allow_html=True)
 
-# --- ESTILO CSS EXATO PARA OS BOTÕES (COMPACTOS E CENTRALIZADOS) ---
+# --- ESTILO CSS PARA OS BOTÕES (LARGURA TOTAL E CENTRALIZADOS) ---
 st.markdown(
     """
     <style>
@@ -34,11 +34,11 @@ st.markdown(
         display: block;
         text-align: center;
         margin: 0 auto;
-        width: 35%;                   /* Largura compacta igual ao print */
+        width: 100%;                  /* Ocupa toda a largura alinhada */
         background-color: #ff4b4b;
         color: white !important;
         border-radius: 5px;
-        padding: 0.5rem 1rem;
+        padding: 0.6rem 1rem;
         font-weight: bold;
         text-decoration: none;
     }
@@ -84,11 +84,9 @@ st.markdown(
 )
 st.markdown("---")
 
-# Seção: Recado da Pastoral / Geral
+# Seção: Recado da Pastoral
 st.subheader("📢 Recado da Pastoral")
-st.info(
-    dados.get("recado_igreja", "Nenhum recado no momento.")
-)
+st.info(dados.get("recado_igreja", "Nenhum recado no momento."))
 
 st.markdown("---")
 

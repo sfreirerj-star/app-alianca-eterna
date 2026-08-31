@@ -11,9 +11,32 @@ st.set_page_config(
 ARQUIVO_DADOS = "dados_painel.json"
 
 
-def buscar_devocional_automatico():
-  """Garante um padrão caso o JSON esteja vazio"""
-  return {
+# --- CARREGAMENTO DE DADOS COM SEGURANÇA ---
+try:
+  if os.path.exists(ARQUIVO_DADOS):
+    with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
+      dados = json.load(f)
+  else:
+    dados = {}
+except Exception:
+  dados = {}
+
+# Recupera os blocos com fallback seguro
+estudo = dados.get("estudo", {})
+if not isinstance(estudo, dict):
+  estudo = {}
+
+recado = dados.get("recado", {})
+if not isinstance(recado, dict):
+  recado = {}
+
+casais_msg = dados.get("casais_msg", {})
+if not isinstance(casais_msg, dict):
+  casais_msg = {}
+
+dev_salvo = dados.get("devocional", {})
+if not isinstance(dev_salvo, dict) or not dev_salvo.get("titulo"):
+  dev = {
       "data": datetime.now().strftime("%d/%m/%Y"),
       "titulo": "Construindo uma Aliança Inabalável",
       "versiculo": (
@@ -27,26 +50,8 @@ def buscar_devocional_automatico():
       ),
       "link_video": "https://youtu.be/0Ev_B5S04YA",
   }
-
-
-# --- CARREGAMENTO DE DADOS ---
-if os.path.exists(ARQUIVO_DADOS):
-  with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
-    dados = json.load(f)
 else:
-  dados = {}
-
-# Recupera os blocos salvos no painel com segurança
-estudo = dados.get("estudo", {})
-recado = dados.get("recado", {})
-casais_msg = dados.get("casais_msg", {})
-
-# Puxa o devocional do JSON ou gera o do dia atual
-dev_salvo = dados.get("devocional", {})
-if isinstance(dev_salvo, dict) and dev_salvo.get("titulo"):
   dev = dev_salvo
-else:
-  dev = buscar_devocional_automatico()
 
 
 # --- INTERFACE DO APLICATIVO DOS MEMBROS ---
@@ -59,7 +64,7 @@ texto_estudo = estudo.get("texto") or estudo.get("sugestao")
 if texto_estudo:
   st.markdown("### 📖 Estudo da Palavra")
   destino_estudo = estudo.get("destino", "Toda a Igreja")
-  st.markdown(f"📌 **Destino do estudo:** `{destino_estudo}`")
+  st.markdown(f"📌 **Destino:** `{destino_estudo}`")
   st.info(texto_estudo)
   st.markdown("---")
 
@@ -68,7 +73,7 @@ texto_recado = recado.get("texto") or recado.get("mensagem")
 if texto_recado:
   st.markdown("### 📢 Recados e Avisos do Pastor")
   destino_recado = recado.get("destino", "Toda a Igreja")
-  st.markdown(f"📌 **Destino do recado:** `{destino_recado}`")
+  st.markdown(f"📌 **Destino:** `{destino_recado}`")
   st.success(texto_recado)
   st.markdown("---")
 
@@ -80,7 +85,7 @@ if texto_casais:
   st.warning(texto_casais)
   st.markdown("---")
 
-# 4. Devocional Diário / Casais (Sincronizado com Vídeo do YouTube)
+# 4. Devocional Diário / Casais
 st.markdown("### 📅 Devocional de Casais")
 st.write(
     f"**Data:** {dev.get('data', datetime.now().strftime('%d/%m/%Y'))}"
@@ -91,7 +96,6 @@ st.write(dev.get("texto"))
 
 if dev.get("link_video"):
   st.markdown("---")
-  # Botão colorido em vermelho vivo para o YouTube
   st.markdown(
       f"""
     <div style="text-align: center; margin: 20px 0;">
@@ -103,7 +107,7 @@ if dev.get("link_video"):
       unsafe_allow_html=True,
   )
 
-# 5. Participação e Cadastros (Ministério de Casais)
+# 5. Participação e Cadastros
 st.markdown("---")
 st.markdown("### 📝 Participação e Cadastros")
 st.write(

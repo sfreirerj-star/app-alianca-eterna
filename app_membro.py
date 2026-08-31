@@ -36,7 +36,7 @@ if os.path.exists(ARQUIVO_DADOS):
 else:
   dados = {}
 
-# Recupera os blocos salvos no painel
+# Recupera os blocos salvos no painel com segurança
 estudo = dados.get("estudo", {})
 recado = dados.get("recado", {})
 casais_msg = dados.get("casais_msg", {})
@@ -55,26 +55,29 @@ st.markdown("*Aplicativo Oficial da Família e do Ministério de Casais*")
 st.markdown("---")
 
 # 1. Estudo da Palavra
-if estudo.get("texto"):
+texto_estudo = estudo.get("texto") or estudo.get("sugestao")
+if texto_estudo:
   st.markdown("### 📖 Estudo da Palavra")
   destino_estudo = estudo.get("destino", "Toda a Igreja")
-  st.caption(f"📌 **Destino:** {destino_estudo}")
-  st.info(estudo.get("texto"))
+  st.markdown(f"📌 **Destino do estudo:** `{destino_estudo}`")
+  st.info(texto_estudo)
   st.markdown("---")
 
 # 2. Recados e Avisos Pastorais
-if recado.get("texto"):
-  st.markdown("### 📢 Recados e Avisos Pastorais")
+texto_recado = recado.get("texto") or recado.get("mensagem")
+if texto_recado:
+  st.markdown("### 📢 Recados e Avisos do Pastor")
   destino_recado = recado.get("destino", "Toda a Igreja")
-  st.caption(f"📌 **Destino:** {destino_recado}")
-  st.success(recado.get("texto"))
+  st.markdown(f"📌 **Destino do recado:** `{destino_recado}`")
+  st.success(texto_recado)
   st.markdown("---")
 
 # 3. Recado Direto aos Casais (Ministério de Casais)
-if casais_msg.get("texto"):
-  st.markdown("### 💍 Recado Direto aos Casais")
-  st.caption("📌 **Destino:** Apenas para os Casais")
-  st.warning(casais_msg.get("texto"))
+texto_casais = casais_msg.get("texto") or casais_msg.get("mensagem")
+if texto_casais:
+  st.markdown("### 💍 Recado do Ministério para os Casais")
+  st.markdown("📌 **Destino:** `Apenas para os Casais`")
+  st.warning(texto_casais)
   st.markdown("---")
 
 # 4. Devocional Diário / Casais (Sincronizado com Vídeo do YouTube)
@@ -88,9 +91,16 @@ st.write(dev.get("texto"))
 
 if dev.get("link_video"):
   st.markdown("---")
+  # Botão colorido em vermelho vivo para o YouTube
   st.markdown(
-      f"👉 **[Assistir ao Vídeo do Devocional no"
-      f" YouTube]({dev.get('link_video')})**"
+      f"""
+    <div style="text-align: center; margin: 20px 0;">
+        <a href="{dev.get('link_video')}" target="_blank" style="display:inline-block; padding:12px 24px; font-size:16px; font-weight:bold; color:white; background-color:#FF0000; text-align:center; text-decoration:none; border-radius:8px; box-shadow: 0px 4px 6px rgba(0,0,0,0.1);">
+            ▶ Assistir ao Vídeo do Devocional no YouTube
+        </a>
+    </div>
+    """,
+      unsafe_allow_html=True,
   )
 
 # 5. Participação e Cadastros (Ministério de Casais)
@@ -100,10 +110,16 @@ st.write(
     "Deseja atualizar seus dados ou participar ativamente da nossa rede de"
     " casais? Clique no botão abaixo:"
 )
-st.link_button(
-    "Preencher Formulário / Cadastro",
-    "https://forms.gle/exemplo_formulario",
-)  # Substitua pelo link real do seu formulário se necessário
+st.markdown(
+    """
+<div style="margin: 15px 0;">
+    <a href="https://forms.gle/exemplo_formulario" target="_blank" style="display:inline-block; padding:12px 24px; font-size:16px; font-weight:bold; color:white; background-color:#007BFF; text-align:center; text-decoration:none; border-radius:8px; box-shadow: 0px 4px 6px rgba(0,0,0,0.1);">
+        📋 Preencher Formulário / Cadastro
+    </a>
+</div>
+""",
+    unsafe_allow_html=True,
+)
 
 # 6. Rodapé de Redes Sociais / Contato
 st.markdown("---")
@@ -112,6 +128,13 @@ st.markdown(
     "Acompanhe nossos cultos, avisos e a programação oficial no Instagram da"
     " igreja:"
 )
-st.link_button(
-    "Acessar Instagram @admucuripe", "https://instagram.com/admucuripe"
+st.markdown(
+    """
+<div style="margin: 15px 0;">
+    <a href="https://instagram.com/admucuripe" target="_blank" style="display:inline-block; padding:12px 24px; font-size:16px; font-weight:bold; color:white; background-color:#E1306C; text-align:center; text-decoration:none; border-radius:8px; box-shadow: 0px 4px 6px rgba(0,0,0,0.1);">
+        📸 Acessar Instagram @admucuripe
+    </a>
+</div>
+""",
+    unsafe_allow_html=True,
 )

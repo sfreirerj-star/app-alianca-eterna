@@ -10,6 +10,20 @@ st.set_page_config(
     page_title="Aliança Eterna", page_icon="📖", layout="centered"
 )
 
+# --- MODO MANUTENCAO / ATUALIZACAO ---
+# Mude para True enquanto estiver mexendo/atualizando o app no GitHub.
+# Quando terminar, volte para False para liberar o acesso da liderança e membros.
+MODO_MANUTENCAO = True
+
+if MODO_MANUTENCAO:
+  st.warning("🚧 **Sistema em Atualização**")
+  st.info(
+      "Estamos aprimorando o aplicativo da nossa igreja para trazer novidades"
+      " para vocês. Por favor, aguarde alguns instantes. O sistema voltará a"
+      " funcionar em breve!"
+  )
+  st.stop()  # Interrompe a execução para que ninguém veja o app incompleto
+
 ARQUIVO_DADOS = "dados_painel.json"
 
 
@@ -59,18 +73,18 @@ def buscar_devocional_site():
       soup = BeautifulSoup(response.text, "html.parser")
 
       # Localiza o bloco correspondente ao dia atual no site
-      # (Procura pelos elementos que estruturam o devocional diário no site informado)
       artigos = soup.find_all(["div", "article", "section", "p"])
       texto_encontrado = ""
 
       for artigo in artigos:
-        # Tenta filtrar o conteúdo do dia correspondente
-        if f"Dia {dia_atual}" in artigo.text or f"{dia_atual}/{mes_atual}" in artigo.text:
+        if (
+            f"Dia {dia_atual}" in artigo.text
+            or f"{dia_atual}/{mes_atual}" in artigo.text
+        ):
           texto_encontrado = artigo.text.strip()
           break
 
       if not texto_encontrado:
-        # Se não achar o bloco exato pelo texto do dia, pega uma prévia geral do site
         primeiro_paragrafo = soup.find("p")
         if primeiro_paragrafo:
           texto_encontrado = primeiro_paragrafo.get_text()
@@ -80,7 +94,9 @@ def buscar_devocional_site():
             "data": data_formatada,
             "titulo": f"Devocional Diário — {data_formatada}",
             "versiculo": "Palavra de Reflexão para Hoje",
-            "texto": texto_encontrado[:500] + "...",  # Limita o tamanho para exibição limpa
+            "texto": (
+                texto_encontrado[:500] + "..."
+            ),  # Limita o tamanho para exibição limpa
             "link_original": url,
         }
   except Exception:

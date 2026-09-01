@@ -1,6 +1,8 @@
 from datetime import datetime
 import json
 import os
+from bs4 import BeautifulSoup
+import requests
 import streamlit as st
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
@@ -11,7 +13,7 @@ st.set_page_config(
 ARQUIVO_DADOS = "dados_painel.json"
 
 
-# --- CARREGAMENTO DE DADOS COM SEGURANÇA ---
+# --- CARREGAMENTO DE DADOS DO PAINEL COM SEGURANÇA ---
 try:
   if os.path.exists(ARQUIVO_DADOS):
     with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
@@ -21,7 +23,7 @@ try:
 except Exception:
   dados = {}
 
-# Recupera os blocos com fallback seguro
+# Recupera os blocos cadastrados pelo pastor/liderança
 estudo = dados.get("estudo", {})
 if not isinstance(estudo, dict):
   estudo = {}
@@ -34,24 +36,73 @@ casais_msg = dados.get("casais_msg", {})
 if not isinstance(casais_msg, dict):
   casais_msg = {}
 
-dev_salvo = dados.get("devocional", {})
-if not isinstance(dev_salvo, dict) or not dev_salvo.get("titulo"):
-  dev = {
-      "data": datetime.now().strftime("%d/%m/%Y"),
+
+# --- BUSCA AUTOMÁTICA DO DEVOCIONAL DIÁRIO DO SITE ---
+@st.cache_data(ttl=3600)  # Atualiza a consulta a cada 1 hora
+def buscar_devocional_site():
+  hoje = datetime.now()
+  dia_atual = hoje.day
+  mes_atual = hoje.strftime("%m")
+  ano_atual = hoje.strftime("%Y")
+  data_formatada = hoje.strftime("%d/%m/%Y")
+
+  url = f"https://www.devocionaldiario.com.br/index.php?nMes={mes_atual}&nAno={ano_atual}"
+
+  try:
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        )
+    }
+    response = requests.get(url, headers=headers, timeout=5)
+    if response.status_code == 200:
+      soup = BeautifulSoup(response.text, "html.parser")
+
+      # Localiza o bloco correspondente ao dia atual no site
+      # (Procura pelos elementos que estruturam o devocional diário no site informado)
+      artigos = soup.find_all(["div", "article", "section", "p"])
+      texto_encontrado = ""
+
+      for artigo in artigos:
+        # Tenta filtrar o conteúdo do dia correspondente
+        if f"Dia {dia_atual}" in artigo.text or f"{dia_atual}/{mes_atual}" in artigo.text:
+          texto_encontrado = artigo.text.strip()
+          break
+
+      if not texto_encontrado:
+        # Se não achar o bloco exato pelo texto do dia, pega uma prévia geral do site
+        primeiro_paragrafo = soup.find("p")
+        if primeiro_paragrafo:
+          texto_encontrado = primeiro_paragrafo.get_text()
+
+      if texto_encontrado:
+        return {
+            "data": data_formatada,
+            "titulo": f"Devocional Diário — {data_formatada}",
+            "versiculo": "Palavra de Reflexão para Hoje",
+            "texto": texto_encontrado[:500] + "...",  # Limita o tamanho para exibição limpa
+            "link_original": url,
+        }
+  except Exception:
+    pass
+
+  # Fallback seguro caso o site esteja instável ou fora do ar
+  return {
+      "data": data_formatada,
       "titulo": "Construindo uma Aliança Inabalável",
       "versiculo": (
           '"Acima de tudo, porém, revistam-se do amor, que é o elo da perfeita'
           ' união." — Colossenses 3:14'
       ),
       "texto": (
-          "Fortalecendo a aliança conjugal através do perdão, do diálogo"
-          " constante e dos princípios inegociáveis da Palavra de Deus em"
-          " família."
+          "Fortalecendo a aliança familiar através do perdão, do diálogo"
+          " constante e dos princípios inegociáveis da Palavra de Deus."
       ),
-      "link_video": "https://youtu.be/0Ev_B5S04YA",
+      "link_original": url,
   }
-else:
-  dev = dev_salvo
+
+
+dev = buscar_devocional_site()
 
 
 # --- INTERFACE DO APLICATIVO DOS MEMBROS ---
@@ -85,22 +136,21 @@ if texto_casais:
   st.warning(texto_casais)
   st.markdown("---")
 
-# 4. Devocional Diário / Casais
-st.markdown("### 📅 Devocional de Casais")
-st.write(
-    f"**Data:** {dev.get('data', datetime.now().strftime('%d/%m/%Y'))}"
-)
+# 4. Devocional Diário Automatizado da Internet
+st.markdown("### 📅 Devocional Diário")
+st.write(f"**Data:** {dev.get('data')}")
 st.markdown(f"#### {dev.get('titulo')}")
 st.markdown(f"*{dev.get('versiculo')}*")
 st.write(dev.get("texto"))
 
-if dev.get("link_video"):
+# Botão para ler completo no site oficial
+if dev.get("link_original"):
   st.markdown("---")
   st.markdown(
       f"""
     <div style="text-align: center; margin: 20px 0;">
-        <a href="{dev.get('link_video')}" target="_blank" style="display:inline-block; padding:12px 24px; font-size:16px; font-weight:bold; color:white; background-color:#FF0000; text-align:center; text-decoration:none; border-radius:8px; box-shadow: 0px 4px 6px rgba(0,0,0,0.1);">
-            ▶ Assistir ao Vídeo do Devocional no YouTube
+        <a href="{dev.get('link_original')}" target="_blank" style="display:inline-block; padding:12px 24px; font-size:16px; font-weight:bold; color:white; background-color:#FF0000; text-align:center; text-decoration:none; border-radius:8px; box-shadow: 0px 4px 6px rgba(0,0,0,0.1);">
+            📖 Ler Devocional Completo no Site Oficial
         </a>
     </div>
     """,
@@ -111,8 +161,9 @@ if dev.get("link_video"):
 st.markdown("---")
 st.markdown("### 📝 Participação e Cadastros")
 st.write(
-    "Deseja atualizar seus dados ou participar ativamente da nosso ministério de"
-    " casais? Basta apenas um dos cônjuges fazer o preenchimento. Clique no botão abaixo:"
+    "Deseja atualizar seus dados ou participar ativamente do nosso ministério de"
+    " casais? Basta apenas um dos cônjuges fazer o preenchimento. Clique no"
+    " botão abaixo:"
 )
 st.markdown(
     """

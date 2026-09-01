@@ -13,7 +13,7 @@ st.set_page_config(
 # --- MODO MANUTENCAO / ATUALIZACAO ---
 # Mude para True enquanto estiver mexendo/atualizando o app no GitHub.
 # Quando terminar, volte para False para liberar o acesso da liderança e membros.
-MODO_MANUTENCAO = True
+MODO_MANUTENCAO = False
 
 if MODO_MANUTENCAO:
   st.warning("🚧 **Sistema em Atualização**")

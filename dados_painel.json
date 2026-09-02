@@ -7,20 +7,20 @@
     "recado_casais": "Teste finalizado com sucesso!",
     "estudo": {
         "destino": "Toda a Igreja",
-        "texto": "Rompendo em fé."
+        "texto": "Testando...."
     },
     "recado": {
-        "destino": "Apenas para os Casais",
-        "texto": "Teste realizado com sucesso!"
+        "destino": "Toda a Igreja",
+        "texto": "Aprimorando o lançamento do aplicativo."
     },
     "casais_msg": {
         "texto": "Prova final."
     },
     "devocional": {
-        "data": "31/08/2026",
-        "titulo": "Construindo uma Aliança Inabalável",
-        "versiculo": "\"Acima de tudo, porém, revistam-se do amor, que é o elo da perfeita união.\" — Colossenses 3:14",
-        "texto": "Fortalecendo a aliança conjugal através do perdão, do diálogo constante e dos princípios inegociáveis da Palavra de Deus em família.",
-        "link_video": "https://youtu.be/0Ev_B5S04YA"
+        "data": "02/09/2026",
+        "titulo": "Devocional Diário — 02/09/2026",
+        "versiculo": "\"Palavra de Reflexión para Hoje\" — 02/09/2026",
+        "texto": "\"Ora, a fé é a certeza de coisas que se esperam, a convicção de fatos que se não vêem.\" Hebreus 11:1",
+        "link_site": "https://www.devocionaldiario.com.br/index.php?mes=09&ano=2026"
     }
 }

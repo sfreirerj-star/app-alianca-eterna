@@ -27,11 +27,13 @@ def remover_acentos(texto):
   ).lower()
 
 
-@st.cache_data(ttl=300)
+# Removido o cache estático puro e adicionado controle baseado na versão do session_state
 def carregar_dados_brutos():
   try:
     if "COLOQUE_SEU_LINK" in LINK_PLANILHA_GOOGLE:
       return pd.DataFrame()
+
+    # Força a leitura direta da planilha sem cache rígido para evitar dessincronização
     df = pd.read_csv(LINK_PLANILHA_GOOGLE)
     return df
   except Exception:
@@ -54,22 +56,26 @@ def obter_chave_unica(row):
 
 
 def obter_df_processado():
-  # Fazemos uma cópia (.copy()) para evitar mutação do DataFrame em cache
   df = carregar_dados_brutos().copy()
   if df.empty:
     return df
 
   perfis = []
-  lideres_manuais = st.session_state.get("lideres_manuais", {})
+  
+  # Garante inicialização segura do session_state de líderes manuais
+  if "lideres_manuais" not in st.session_state:
+    st.session_state["lideres_manuais"] = {}
+
+  lideres_manuais = st.session_state["lideres_manuais"]
 
   for idx, row in df.iterrows():
     chave = obter_chave_unica(row)
 
-    # 1. A alteração manual tem prioridade absoluta sobre a lista oficial
+    # 1. A alteração manual tem prioridade absoluta
     if chave in lideres_manuais:
       eh_lider = bool(lideres_manuais[chave])
     else:
-      # 2. Se não houver alteração manual, aplica a regra da lista oficial
+      # 2. Regra padrão oficial
       linha_texto = " ".join(str(val).lower() for val in row.values)
       linha_texto_limpa = remover_acentos(linha_texto)
       eh_lider = any(

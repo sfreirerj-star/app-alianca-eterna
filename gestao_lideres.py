@@ -2,7 +2,7 @@ import database as db
 import streamlit as st
 
 
-def renderizar_painel_lideranca(df, col_nome1, col_conjuge):
+def renderizar_painel_lideranca(df, col_nome1=None, col_conjuge=None):
   with st.expander(
       "⭐ Painel de Configuração: Substituir / Alterar Casal Líder",
       expanded=True,
@@ -13,8 +13,16 @@ def renderizar_painel_lideranca(df, col_nome1, col_conjuge):
     )
 
     if df.empty:
-      st.warning("⚠️ Nenhum registro carregado.")
+      st.warning("⚠️ Nenhum registro carregado da planilha.")
       return
+
+    # Nome exato da coluna identificado na sua tabela: "Nome completo:"
+    c_nome = "Nome completo:" if "Nome completo:" in df.columns else "Nome completo"
+    if c_nome not in df.columns:
+      c_nome = df.columns[3] if len(df.columns) > 3 else df.columns[0]
+
+    # Procura coluna de cônjuge se houver
+    c_conj = next((c for c in df.columns if "cônjuge" in c.lower() or "conjuge" in c.lower() or "espos" in c.lower()), None)
 
     if "lideres_manuais" not in st.session_state:
       st.session_state["lideres_manuais"] = {}
@@ -23,11 +31,15 @@ def renderizar_painel_lideranca(df, col_nome1, col_conjuge):
     mapa_indices = {}
 
     for i, r in df.iterrows():
-      n1 = str(r.get(col_nome1, ""))
-      n2 = str(r.get(col_conjuge, ""))
+      n1 = str(r.get(c_nome, "")) if c_nome else ""
+      n2 = str(r.get(c_conj, "")) if c_conj else ""
+
+      if not n1.strip() and len(r) > 0:
+        n1 = str(r.iloc[0])
+
       eh_lider = str(r.get("Perfil", "")) == "⭐ Líder"
       prefixo = "⭐ [Líder] " if eh_lider else ""
-      nome_fmt = f"{n1} & {n2}" if n2 else n1
+      nome_fmt = f"{n1} & {n2}" if n2 and n2 != "nan" and n2.strip() else n1
       texto_opcao = f"{i}: {prefixo}{nome_fmt}"
       opcoes_lideranca.append(texto_opcao)
       mapa_indices[texto_opcao] = i
@@ -50,7 +62,6 @@ def renderizar_painel_lideranca(df, col_nome1, col_conjuge):
             use_container_width=True,
         ):
           st.session_state["lideres_manuais"][chave_unica] = True
-          # Limpa o cache do Streamlit para forçar a releitura imediata
           st.cache_data.clear()
           st.success("✅ Casal promovido a Líder com sucesso!")
           st.rerun()
@@ -62,7 +73,6 @@ def renderizar_painel_lideranca(df, col_nome1, col_conjuge):
             use_container_width=True,
         ):
           st.session_state["lideres_manuais"][chave_unica] = False
-          # Limpa o cache do Streamlit para forçar a releitura imediata
           st.cache_data.clear()
           st.success("✅ Status de liderança removido com sucesso!")
           st.rerun()

@@ -19,7 +19,7 @@ def renderizar_painel_lideranca(df, col_nome1=None, col_conjuge=None):
     if "lideres_manuais" not in st.session_state:
       st.session_state["lideres_manuais"] = {}
 
-    # Identificação robusta das colunas de nome e cônjuge caso não venham definidas
+    # Identificação robusta das colunas
     if not col_nome1 or col_nome1 not in df.columns:
       col_nome1 = db.obter_coluna_segura(
           df,
@@ -52,7 +52,6 @@ def renderizar_painel_lideranca(df, col_nome1=None, col_conjuge=None):
       n1 = str(r.get(col_nome1, "")).strip()
       n2 = str(r.get(col_conjuge, "")).strip()
 
-      # Se n1 ou n2 vierem vazios ou nan, tenta pegar as primeiras colunas de texto da linha
       if not n1 or n1.lower() == "nan":
         for col in df.columns[:3]:
           val = str(r.get(col, "")).strip()
@@ -65,7 +64,14 @@ def renderizar_painel_lideranca(df, col_nome1=None, col_conjuge=None):
         if val_c and val_c.lower() != "nan":
           n2 = val_c
 
-      eh_lider = str(r.get("Perfil", "")) == "⭐ Líder"
+      # Verifica se é líder pela planilha ou pelo session_state manual
+      chave_r = db.obter_chave_unica(r)
+      eh_lider_manual = st.session_state["lideres_manuais"].get(chave_r)
+      if eh_lider_manual is not None:
+        eh_lider = eh_lider_manual
+      else:
+        eh_lider = str(r.get("Perfil", "")) == "⭐ Líder"
+
       prefixo = "⭐ [Líder] " if eh_lider else ""
 
       if n1 and n2 and n2.lower() != "nan":
@@ -79,35 +85,35 @@ def renderizar_painel_lideranca(df, col_nome1=None, col_conjuge=None):
       opcoes_lideranca.append(texto_opcao)
       mapa_indices[texto_opcao] = i
 
-    casal_selecionado = st.selectbox(
-        "Selecione o Casal:", opcoes_lideranca, key="select_painel_lider"
-    )
-
-    if casal_selecionado:
-      idx_real = mapa_indices[casal_selecionado]
-      registro_selecionado = df.loc[idx_real]
-      chave_unica = db.obter_chave_unica(registro_selecionado)
+    # Usando um formulário para garantir que a ação do botão processe com estabilidade
+    with st.form("form_painel_lideranca"):
+      casal_selecionado = st.selectbox(
+          "Selecione o Casal:", opcoes_lideranca, key="select_painel_lider"
+      )
 
       col1, col2 = st.columns(2)
+      btn_pro = col1.form_submit_button(
+          "⭐ Promover a Líder", use_container_width=True
+      )
+      btn_rem = col2.form_submit_button(
+          "❌ Remover da Liderança", use_container_width=True
+      )
 
-      with col1:
-        if st.button(
-            "⭐ Promover a Líder",
-            key="btn_promover_lider",
-            use_container_width=True,
-        ):
-          st.session_state["lideres_manuais"][chave_unica] = True
-          st.cache_data.clear()
-          st.success("✅ Casal promovido a Líder com sucesso!")
-          st.rerun()
+      if btn_pro or btn_rem:
+        if casal_selecionado:
+          idx_real = mapa_indices[casal_selecionado]
+          registro_selecionado = df.loc[idx_real]
+          chave_unica = db.obter_chave_unica(registro_selecionado)
 
-      with col2:
-        if st.button(
-            "❌ Remover da Liderança",
-            key="btn_remover_lider",
-            use_container_width=True,
-        ):
-          st.session_state["lideres_manuais"][chave_unica] = False
-          st.cache_data.clear()
-          st.success("✅ Status de liderança removido com sucesso!")
+          if btn_pro:
+            st.session_state["lideres_manuais"][chave_unica] = True
+            st.success(
+                f"✅ Casal da linha {idx_real} promovido a Líder com sucesso!"
+            )
+          elif btn_rem:
+            st.session_state["lideres_manuais"][chave_unica] = False
+            st.success(
+                f"✅ Status de liderança removido do casal da linha {idx_real}!"
+            )
+
           st.rerun()

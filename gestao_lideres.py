@@ -17,9 +17,8 @@ def renderizar_painel_lideranca(df, col_nome1=None, col_conjuge=None):
       return
 
     if "lideres_manuais" not in st.session_state:
-      st.session_state["lideres_manuais"] = {}
+      st.session_state["lideres_manuais"] = db.carregar_lideres_json()
 
-    # Identificação robusta das colunas
     if not col_nome1 or col_nome1 not in df.columns:
       col_nome1 = db.obter_coluna_segura(
           df,
@@ -64,9 +63,9 @@ def renderizar_painel_lideranca(df, col_nome1=None, col_conjuge=None):
         if val_c and val_c.lower() != "nan":
           n2 = val_c
 
-      # Verifica se é líder pela planilha ou pelo session_state manual
       chave_r = db.obter_chave_unica(r)
       eh_lider_manual = st.session_state["lideres_manuais"].get(chave_r)
+
       if eh_lider_manual is not None:
         eh_lider = eh_lider_manual
       else:
@@ -85,7 +84,6 @@ def renderizar_painel_lideranca(df, col_nome1=None, col_conjuge=None):
       opcoes_lideranca.append(texto_opcao)
       mapa_indices[texto_opcao] = i
 
-    # Usando um formulário para garantir que a ação do botão processe com estabilidade
     with st.form("form_painel_lideranca"):
       casal_selecionado = st.selectbox(
           "Selecione o Casal:", opcoes_lideranca, key="select_painel_lider"
@@ -107,13 +105,23 @@ def renderizar_painel_lideranca(df, col_nome1=None, col_conjuge=None):
 
           if btn_pro:
             st.session_state["lideres_manuais"][chave_unica] = True
+            if "Perfil" in df.columns:
+              df.loc[idx_real, "Perfil"] = "⭐ Líder"
             st.success(
-                f"✅ Casal da linha {idx_real} promovido a Líder com sucesso!"
+                f"✅ Operação realizada com sucesso! Casal da linha {idx_real}"
+                " promovido a Líder."
             )
           elif btn_rem:
             st.session_state["lideres_manuais"][chave_unica] = False
+            if "Perfil" in df.columns:
+              df.loc[idx_real, "Perfil"] = "Casal"
             st.success(
-                f"✅ Status de liderança removido do casal da linha {idx_real}!"
+                f"✅ Operação realizada com sucesso! Status de liderança"
+                f" removido da linha {idx_real}."
             )
 
+          # SALVA IMEDIATAMENTE NO ARQUIVO JSON LOCAL
+          db.salvar_lideres_json(st.session_state["lideres_manuais"])
+
+          st.cache_data.clear()
           st.rerun()

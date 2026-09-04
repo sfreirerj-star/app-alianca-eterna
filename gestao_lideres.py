@@ -16,14 +16,6 @@ def renderizar_painel_lideranca(df, col_nome1=None, col_conjuge=None):
       st.warning("⚠️ Nenhum registro carregado da planilha.")
       return
 
-    # Nome exato da coluna identificado na sua tabela: "Nome completo:"
-    c_nome = "Nome completo:" if "Nome completo:" in df.columns else "Nome completo"
-    if c_nome not in df.columns:
-      c_nome = df.columns[3] if len(df.columns) > 3 else df.columns[0]
-
-    # Procura coluna de cônjuge se houver
-    c_conj = next((c for c in df.columns if "cônjuge" in c.lower() or "conjuge" in c.lower() or "espos" in c.lower()), None)
-
     if "lideres_manuais" not in st.session_state:
       st.session_state["lideres_manuais"] = {}
 
@@ -31,15 +23,54 @@ def renderizar_painel_lideranca(df, col_nome1=None, col_conjuge=None):
     mapa_indices = {}
 
     for i, r in df.iterrows():
-      n1 = str(r.get(c_nome, "")) if c_nome else ""
-      n2 = str(r.get(c_conj, "")) if c_conj else ""
+      # Varredura inteligente para encontrar o nome em qualquer coluna parecida
+      n1 = ""
+      for col in df.columns:
+        val = str(r.get(col, ""))
+        col_lower = str(col).lower()
+        if (
+            "nome" in col_lower
+            and val
+            and val != "nan"
+            and "@" not in val
+            and "/" not in val
+        ):
+          n1 = val
+          break
 
-      if not n1.strip() and len(r) > 0:
-        n1 = str(r.iloc[0])
+      # Fallback: pega o primeiro campo de texto válido da linha caso não ache pela palavra 'nome'
+      if not n1:
+        for col in df.columns:
+          val = str(r.get(col, ""))
+          if (
+              val
+              and val != "nan"
+              and "@" not in val
+              and "/" not in val
+              and col != "Perfil"
+          ):
+            n1 = val
+            break
+
+      # Varredura para o cônjuge
+      n2 = ""
+      for col in df.columns:
+        val = str(r.get(col, ""))
+        col_lower = str(col).lower()
+        if (
+            ("cônjuge" in col_lower or "conjuge" in col_lower or "espos" in col_lower)
+            and val
+            and val != "nan"
+        ):
+          n2 = val
+          break
 
       eh_lider = str(r.get("Perfil", "")) == "⭐ Líder"
       prefixo = "⭐ [Líder] " if eh_lider else ""
       nome_fmt = f"{n1} & {n2}" if n2 and n2 != "nan" and n2.strip() else n1
+      if not nome_fmt or nome_fmt == "nan":
+        nome_fmt = f"Casal da Linha {i+1}"
+
       texto_opcao = f"{i}: {prefixo}{nome_fmt}"
       opcoes_lideranca.append(texto_opcao)
       mapa_indices[texto_opcao] = i

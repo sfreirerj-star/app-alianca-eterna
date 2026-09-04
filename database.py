@@ -54,7 +54,8 @@ def obter_chave_unica(row):
 
 
 def obter_df_processado():
-  df = carregar_dados_brutos()
+  # Fazemos uma cópia (.copy()) para evitar mutação do DataFrame em cache
+  df = carregar_dados_brutos().copy()
   if df.empty:
     return df
 
@@ -63,9 +64,12 @@ def obter_df_processado():
 
   for idx, row in df.iterrows():
     chave = obter_chave_unica(row)
+
+    # 1. A alteração manual tem prioridade absoluta sobre a lista oficial
     if chave in lideres_manuais:
       eh_lider = bool(lideres_manuais[chave])
     else:
+      # 2. Se não houver alteração manual, aplica a regra da lista oficial
       linha_texto = " ".join(str(val).lower() for val in row.values)
       linha_texto_limpa = remover_acentos(linha_texto)
       eh_lider = any(

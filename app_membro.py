@@ -7,7 +7,9 @@ import streamlit as st
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
-    page_title="Aliança Eterna", page_icon="📖", layout="centered"
+    page_title="Casamento com Propósito - Aliança Eterna",
+    page_icon="icone.png",  # ou "icone.ico"
+    layout="wide",
 )
 
 # --- MODO MANUTENCAO / ATUALIZACAO ---

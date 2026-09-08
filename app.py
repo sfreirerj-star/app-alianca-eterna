@@ -189,7 +189,6 @@ if acao == "listar":
     )
     df_filtrado = df_filtrado[filtro]
 
-  # Ajusta o índice para começar em 1 em vez de 0
   df_exibicao = df_filtrado.copy()
   df_exibicao.index = range(1, len(df_exibicao) + 1)
 
@@ -366,7 +365,7 @@ elif acao == "incluir":
         novo_registro[col_filhos_fora] = str_filhos_fora_final
 
       df_novo = pd.DataFrame([novo_registro])
-      df_final = pd.concat([df, df_novo], ignore_index=True)
+      df = pd.concat([df, df_novo], ignore_index=True)
       st.success("✅ Operação realizada com sucesso!")
       st.rerun()
 
@@ -539,6 +538,57 @@ elif acao == "relatorios":
 elif acao == "agenda":
   agenda.modulo_agenda()
 
+# --- BLOCO DE RELATÓRIOS DE ACOMPANHAMENTO PASTORAL (POSICIONADO ACIMA DO SAIR) ---
+st.markdown("---")
+st.header("📊 Relatórios e Indicadores de Acompanhamento Pastoral")
+
+import sqlite3
+import pandas as pd
+
+try:
+  conn = sqlite3.connect("acompanhamento.db")
+  df_atendimentos = pd.read_sql_query("SELECT * FROM registros", conn)
+  conn.close()
+except Exception:
+  df_atendimentos = pd.DataFrame()
+
+if not df_atendimentos.empty:
+  tipo_relatorio = st.selectbox(
+      "🔍 Selecione a Visão do Relatório de Acompanhamento:",
+      [
+          "📋 Visão Geral (Todos os Atendimentos)",
+          "👥 Relatório por Casal Líder (Carga de Gestão / Casais sob tutela)",
+          "🎯 Relatório por Foco / Desafio do Atendimento (Estatísticas de Problemas)"
+      ]
+  )
+
+  if "Relatório por Casal Líder" in tipo_relatorio:
+    st.subheader("👥 Carga de Acompanhamentos por Casal Líder")
+    resumo_lider = df_atendimentos.groupby("casal_lider").size().reset_index(name="Total de Casais / Atendimentos")
+    st.dataframe(resumo_lider, use_container_width=True)
+    
+    lider_escolhido = st.selectbox("Filtrar detalhes por Casal Líder específico:", ["Todos"] + list(df_atendimentos["casal_lider"].unique()))
+    df_detalhe_lider = df_atendimentos if lider_escolhido == "Todos" else df_atendimentos[df_atendimentos["casal_lider"] == lider_escolhido]
+    st.markdown(f"**Registros detalhados ({len(df_detalhe_lider)}):**")
+    st.dataframe(df_detalhe_lider, use_container_width=True)
+
+  elif "Foco / Desafio" in tipo_relatorio:
+    st.subheader("🎯 Indicadores por Foco / Desafio (Ex: Brigas, Vícios, etc.)")
+    resumo_foco = df_atendimentos.groupby("motivo").size().reset_index(name="Quantidade de Ocorrências")
+    st.dataframe(resumo_foco, use_container_width=True)
+    
+    foco_escolhido = st.selectbox("Filtrar detalhes por Foco específico:", ["Todos"] + list(df_atendimentos["motivo"].unique()))
+    df_detalhe_foco = df_atendimentos if foco_escolhido == "Todos" else df_atendimentos[df_atendimentos["motivo"] == foco_escolhido]
+    st.markdown(f"**Registros detalhados ({len(df_detalhe_foco)}):**")
+    st.dataframe(df_detalhe_foco, use_container_width=True)
+
+  else:
+    st.subheader("📋 Lista Completa de Atendimentos Registrados")
+    st.dataframe(df_atendimentos, use_container_width=True)
+else:
+  st.info("ℹ️ Nenhum acompanhamento registrado no banco de dados ainda. Utilize a barra lateral para registrar o primeiro atendimento.")
+
+# --- BOTÃO SAIR DO SISTEMA ---
 st.markdown("<br><br>", unsafe_allow_html=True)
 cols_centro = st.columns([2, 1, 2])
 with cols_centro[1]:
@@ -564,16 +614,20 @@ lista_casais = []
 try:
   if not df.empty:
     for num_seq, (idx, row) in enumerate(df.iterrows(), start=1):
+      eh_lider = str(row.get("Perfil", "")) == "⭐ Líder"
+      
+      # OCULTA OS LÍDERES DA LISTA DE CASAIS ACOMPANHADOS
+      if eh_lider:
+        continue
+        
       n1 = str(row.get(col_n1_lat, ""))
       n2 = str(row.get(col_n2_lat, ""))
-      eh_lider = str(row.get("Perfil", "")) == "⭐ Líder"
-      prefixo = "⭐ [Líder] " if eh_lider else ""
       nome_formatado = f"{n1} & {n2}" if n2 else n1
-      lista_casais.append(f"{num_seq}: {prefixo}{nome_formatado}")
+      lista_casais.append(f"{num_seq}: {nome_formatado}")
   else:
-    lista_casais = ["1: Marcelo & Gilmara"]
+    lista_casais = ["Nenhum casal disponível"]
 except Exception:
-  lista_casais = ["1: Marcelo & Gilmara"]
+  lista_casais = ["Nenhum casal disponível"]
 
 casal_escolhido = st.sidebar.selectbox(
     "Casal Sendo Acompanhado",
@@ -608,7 +662,6 @@ tipo_acao = st.sidebar.selectbox(
     "Tipo de Atendimento", ["Aconselhamento", "Visita no Lar"]
 )
 
-# ADICIONADO: Campo de Foco / Desafio do Atendimento
 foco_atendimento = st.sidebar.selectbox(
     "🎯 Foco / Desafio do Atendimento",
     [
@@ -662,39 +715,3 @@ if st.sidebar.button("Salvar Registro de Acompanhamento"):
       st.sidebar.error(f"❌ Erro ao salvar no banco: {e}")
   else:
     st.sidebar.error("Preencha todos os campos e selecione um casal válido.")
-
-    # --- BLOCO DE RELATÓRIOS DE ACOMPANHAMENTO NA TELA PRINCIPAL ---
-st.markdown("---")
-st.header("📊 Relatórios de Acompanhamento Pastoral")
-
-import sqlite3
-import pandas as pd
-
-try:
-  conn = sqlite3.connect("acompanhamento.db")
-  df_atendimentos = pd.read_sql_query("SELECT * FROM registros", conn)
-  conn.close()
-except Exception:
-  df_atendimentos = pd.DataFrame()
-
-if not df_atendimentos.empty:
-  col_fil1, col_fil2 = st.columns(2)
-  
-  with col_fil1:
-    lideres_cadastrados = ["Todos"] + list(df_atendimentos["casal_lider"].unique())
-    filtro_lider = st.selectbox("Filtrar por Casal Líder Responsável", lideres_cadastrados)
-    
-  with col_fil2:
-    focos_cadastrados = ["Todos"] + list(df_atendimentos["motivo"].unique())
-    filtro_foco = st.selectbox("Filtrar por Foco / Desafio", focos_cadastrados)
-
-  df_filtrado = df_atendimentos.copy()
-  if filtro_lider != "Todos":
-    df_filtrado = df_filtrado[df_filtrado["casal_lider"] == filtro_lider]
-  if filtro_foco != "Todos":
-    df_filtrado = df_filtrado[df_filtrado["motivo"] == filtro_foco]
-
-  st.subheader(f"Resultados Encontrados ({len(df_filtrado)} registros)")
-  st.dataframe(df_filtrado, use_container_width=True)
-else:
-  st.info("ℹ️ Nenhum acompanhamento registrado no banco de dados ainda. Utilize a barra lateral para salvar o primeiro atendimento.")

@@ -14,7 +14,7 @@ import streamlit.components.v1 as components
 # --- 1. CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
     page_title="Casamento com Propósito - Gestão Pastoral",
-    page_icon="icone.png",  # Ícone na aba do navegador
+    page_icon="icone.png",
     layout="wide",
 )
 
@@ -538,7 +538,7 @@ elif acao == "relatorios":
 elif acao == "agenda":
   agenda.modulo_agenda()
 
-# --- BLOCO DE RELATÓRIOS DE ACOMPANHAMENTO PASTORAL (POSICIONADO ACIMA DO SAIR) ---
+# --- BLOCO DE RELATÓRIOS DE ACOMPANHAMENTO PASTORAL COM OPÇÕES DE IMPRESSÃO E EDIÇÃO/EXCLUSÃO ---
 st.markdown("---")
 st.header("📊 Relatórios e Indicadores de Acompanhamento Pastoral")
 
@@ -561,6 +561,52 @@ if not df_atendimentos.empty:
           "🎯 Relatório por Foco / Desafio do Atendimento (Estatísticas de Problemas)"
       ]
   )
+
+  # Botão prático para impressão da visão selecionada atual
+  if st.button("🖨️ Imprimir / Visualizar Relatório Selecionado para PDF"):
+    st.session_state["imprimir_acompanhamento"] = True
+  else:
+    if "imprimir_acompanhamento" not in st.session_state:
+      st.session_state["imprimir_acompanhamento"] = False
+
+  if st.session_state["imprimir_acompanhamento"]:
+    st.markdown("---")
+    st.markdown(f"#### 📄 Visualização de Impressão: {tipo_relatorio}")
+    
+    html_conteudo_imp = f"""
+    <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Relatório Pastoral - Casamento com Propósito</h2>
+        <h3>{tipo_relatorio}</h3>
+        <hr>
+    """
+    if "Relatório por Casal Líder" in tipo_relatorio:
+      resumo_lider_imp = df_atendimentos.groupby("casal_lider").size().reset_index(name="Total de Casais / Atendimentos")
+      html_conteudo_imp += resumo_lider_imp.to_html(index=False)
+    elif "Foco / Desafio" in tipo_relatorio:
+      resumo_foco_imp = df_atendimentos.groupby("motivo").size().reset_index(name="Quantidade de Ocorrências")
+      html_conteudo_imp += resumo_foco_imp.to_html(index=False)
+    else:
+      html_conteudo_imp += df_atendimentos.to_html(index=False)
+      
+    html_conteudo_imp += "</div>"
+    
+    components.html(html_conteudo_imp, height=400, scrolling=True)
+    
+    script_print_atendimento = """
+    <script>
+    function imprimirAtendimentos() {
+        var win = window.open('', '', 'height=700,width=900');
+        win.document.write(document.querySelector('iframe').contentDocument.documentElement.innerHTML);
+        win.document.close();
+        win.focus();
+        setTimeout(() => { win.print(); }, 500);
+    }
+    </script>
+    <button onclick="imprimirAtendimentos()" style="background-color: #16a34a; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-bottom: 15px;">
+        🖨️ Clique Aqui para Imprimir esta Página
+    </button>
+    """
+    components.html(script_print_atendimento, height=60)
 
   if "Relatório por Casal Líder" in tipo_relatorio:
     st.subheader("👥 Carga de Acompanhamentos por Casal Líder")
@@ -585,6 +631,54 @@ if not df_atendimentos.empty:
   else:
     st.subheader("📋 Lista Completa de Atendimentos Registrados")
     st.dataframe(df_atendimentos, use_container_width=True)
+
+  # --- SEÇÃO DE GERENCIAMENTO (EDITAR / EXCLUIR REGISTROS DE ACOMPANHAMENTO) ---
+  st.markdown("---")
+  st.subheader("⚙️ Gerenciar, Editar ou Excluir Registros de Acompanhamento")
+  
+  lista_ids_atendimentos = [f"ID {row['id']} - Casal: {row['casal_alvo']} ({row['data_atendimento']})" for _, row in df_atendimentos.iterrows()]
+  atendimento_selecionado_str = st.selectbox("Selecione o atendimento para alterar ou excluir:", lista_ids_atendimentos)
+  
+  if atendimento_selecionado_str:
+    id_selecionado = int(atendimento_selecionado_str.split(" - ")[0].replace("ID", "").strip())
+    reg_atual = df_atendimentos[df_atendimentos["id"] == id_selecionado].iloc[0]
+    
+    with st.form(f"form_edicao_atendimento_{id_selecionado}"):
+      st.markdown(f"**Editando Atendimento ID: {id_selecionado}**")
+      
+      novo_casal_alvo = st.text_input("Casal Alvo", value=str(reg_atual["casal_alvo"]))
+      novo_lider_resp = st.text_input("Casal Líder Responsável", value=str(reg_atual["casal_lider"]))
+      novo_tipo_atend = st.selectbox("Tipo de Atendimento", ["Aconselhamento", "Visita no Lar"], index=0 if reg_atual["tipo"]=="Aconselhamento" else 1)
+      novo_motivo = st.text_input("Foco / Desafio", value=str(reg_atual["motivo"]))
+      nova_data = st.text_input("Data do Atendimento", value=str(reg_atual["data_atendimento"]))
+      nova_desc = st.text_area("Detalhes", value=str(reg_atual["descricao"]))
+      
+      col_f1, col_f2 = st.columns(2)
+      salvar_edicao = col_f1.form_submit_button("💾 Salvar Alterações", type="primary")
+      excluir_atendimento = col_f2.form_submit_button("🗑️ Excluir este Atendimento", type="secondary")
+      
+      if salvar_edicao:
+        conn = sqlite3.connect("acompanhamento.db")
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE registros 
+            SET casal_alvo = ?, casal_lider = ?, tipo = ?, motivo = ?, data_atendimento = ?, descricao = ?
+            WHERE id = ?
+        """, (novo_casal_alvo, novo_lider_resp, novo_tipo_atend, novo_motivo, nova_data, nova_desc, id_selecionado))
+        conn.commit()
+        conn.close()
+        st.success("✅ Atendimento atualizado com sucesso!")
+        st.rerun()
+        
+      if excluir_atendimento:
+        conn = sqlite3.connect("acompanhamento.db")
+        cur = conn.cursor()
+        cur.execute("DELETE FROM registros WHERE id = ?", (id_selecionado,))
+        conn.commit()
+        conn.close()
+        st.success("🗑️ Atendimento excluído com sucesso!")
+        st.rerun()
+
 else:
   st.info("ℹ️ Nenhum acompanhamento registrado no banco de dados ainda. Utilize a barra lateral para registrar o primeiro atendimento.")
 
@@ -711,6 +805,7 @@ if st.sidebar.button("Salvar Registro de Acompanhamento"):
       conn.commit()
       conn.close()
       st.sidebar.success("✅ Acompanhamento registrado e salvo com sucesso!")
+      st.rerun()
     except Exception as e:
       st.sidebar.error(f"❌ Erro ao salvar no banco: {e}")
   else:

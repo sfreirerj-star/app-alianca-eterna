@@ -662,3 +662,39 @@ if st.sidebar.button("Salvar Registro de Acompanhamento"):
       st.sidebar.error(f"❌ Erro ao salvar no banco: {e}")
   else:
     st.sidebar.error("Preencha todos os campos e selecione um casal válido.")
+
+    # --- BLOCO DE RELATÓRIOS DE ACOMPANHAMENTO NA TELA PRINCIPAL ---
+st.markdown("---")
+st.header("📊 Relatórios de Acompanhamento Pastoral")
+
+import sqlite3
+import pandas as pd
+
+try:
+  conn = sqlite3.connect("acompanhamento.db")
+  df_atendimentos = pd.read_sql_query("SELECT * FROM registros", conn)
+  conn.close()
+except Exception:
+  df_atendimentos = pd.DataFrame()
+
+if not df_atendimentos.empty:
+  col_fil1, col_fil2 = st.columns(2)
+  
+  with col_fil1:
+    lideres_cadastrados = ["Todos"] + list(df_atendimentos["casal_lider"].unique())
+    filtro_lider = st.selectbox("Filtrar por Casal Líder Responsável", lideres_cadastrados)
+    
+  with col_fil2:
+    focos_cadastrados = ["Todos"] + list(df_atendimentos["motivo"].unique())
+    filtro_foco = st.selectbox("Filtrar por Foco / Desafio", focos_cadastrados)
+
+  df_filtrado = df_atendimentos.copy()
+  if filtro_lider != "Todos":
+    df_filtrado = df_filtrado[df_filtrado["casal_lider"] == filtro_lider]
+  if filtro_foco != "Todos":
+    df_filtrado = df_filtrado[df_filtrado["motivo"] == filtro_foco]
+
+  st.subheader(f"Resultados Encontrados ({len(df_filtrado)} registros)")
+  st.dataframe(df_filtrado, use_container_width=True)
+else:
+  st.info("ℹ️ Nenhum acompanhamento registrado no banco de dados ainda. Utilize a barra lateral para salvar o primeiro atendimento.")

@@ -545,143 +545,151 @@ st.header("📊 Relatórios e Indicadores de Acompanhamento Pastoral")
 import sqlite3
 import pandas as pd
 
-try:
-  conn = sqlite3.connect("acompanhamento.db")
-  df_atendimentos = pd.read_sql_query("SELECT * FROM registros", conn)
-  conn.close()
-except Exception:
-  df_atendimentos = pd.DataFrame()
+def carregar_atendimentos():
+    try:
+        conn = sqlite3.connect("acompanhamento.db")
+        df_res = pd.read_sql_query("SELECT * FROM registros", conn)
+        conn.close()
+        return df_res
+    except Exception:
+        return pd.DataFrame()
+
+df_atendimentos = carregar_atendimentos()
 
 if not df_atendimentos.empty:
-  tipo_relatorio = st.selectbox(
-      "🔍 Selecione a Visão do Relatório de Acompanhamento:",
-      [
-          "📋 Visão Geral (Todos os Atendimentos)",
-          "👥 Relatório por Casal Líder (Carga de Gestão / Casais sob tutela)",
-          "🎯 Relatório por Foco / Desafio do Atendimento (Estatísticas de Problemas)"
-      ]
-  )
+    tipo_relatorio = st.selectbox(
+        "🔍 Selecione a Visão do Relatório de Acompanhamento:",
+        [
+            "📋 Visão Geral (Todos os Atendimentos)",
+            "👥 Relatório por Casal Líder (Carga de Gestão / Casais sob tutela)",
+            "🎯 Relatório por Foco / Desafio do Atendimento (Estatísticas de Problemas)"
+        ]
+    )
 
-  # Botão prático para impressão da visão selecionada atual
-  if st.button("🖨️ Imprimir / Visualizar Relatório Selecionado para PDF"):
-    st.session_state["imprimir_acompanhamento"] = True
-  else:
-    if "imprimir_acompanhamento" not in st.session_state:
-      st.session_state["imprimir_acompanhamento"] = False
+    # Botão prático para impressão da visão selecionada atual
+    if st.button("🖨️ Imprimir / Visualizar Relatório Selecionado para PDF"):
+        st.session_state["imprimir_acompanhamento"] = True
 
-  if st.session_state["imprimir_acompanhamento"]:
-    st.markdown("---")
-    st.markdown(f"#### 📄 Visualização de Impressão: {tipo_relatorio}")
-    
-    html_conteudo_imp = f"""
-    <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2>Relatório Pastoral - Casamento com Propósito</h2>
-        <h3>{tipo_relatorio}</h3>
-        <hr>
-    """
-    if "Relatório por Casal Líder" in tipo_relatorio:
-      resumo_lider_imp = df_atendimentos.groupby("casal_lider").size().reset_index(name="Total de Casais / Atendimentos")
-      html_conteudo_imp += resumo_lider_imp.to_html(index=False)
-    elif "Foco / Desafio" in tipo_relatorio:
-      resumo_foco_imp = df_atendimentos.groupby("motivo").size().reset_index(name="Quantidade de Ocorrências")
-      html_conteudo_imp += resumo_foco_imp.to_html(index=False)
-    else:
-      html_conteudo_imp += df_atendimentos.to_html(index=False)
-      
-    html_conteudo_imp += "</div>"
-    
-    components.html(html_conteudo_imp, height=400, scrolling=True)
-    
-    script_print_atendimento = """
-    <script>
-    function imprimirAtendimentos() {
-        var win = window.open('', '', 'height=700,width=900');
-        win.document.write(document.querySelector('iframe').contentDocument.documentElement.innerHTML);
-        win.document.close();
-        win.focus();
-        setTimeout(() => { win.print(); }, 500);
-    }
-    </script>
-    <button onclick="imprimirAtendimentos()" style="background-color: #16a34a; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-bottom: 15px;">
-        🖨️ Clique Aqui para Imprimir esta Página
-    </button>
-    """
-    components.html(script_print_atendimento, height=60)
-
-  if "Relatório por Casal Líder" in tipo_relatorio:
-    st.subheader("👥 Carga de Acompanhamentos por Casal Líder")
-    resumo_lider = df_atendimentos.groupby("casal_lider").size().reset_index(name="Total de Casais / Atendimentos")
-    st.dataframe(resumo_lider, use_container_width=True)
-    
-    lider_escolhido = st.selectbox("Filtrar detalhes por Casal Líder específico:", ["Todos"] + list(df_atendimentos["casal_lider"].unique()))
-    df_detalhe_lider = df_atendimentos if lider_escolhido == "Todos" else df_atendimentos[df_atendimentos["casal_lider"] == lider_escolhido]
-    st.markdown(f"**Registros detalhados ({len(df_detalhe_lider)}):**")
-    st.dataframe(df_detalhe_lider, use_container_width=True)
-
-  elif "Foco / Desafio" in tipo_relatorio:
-    st.subheader("🎯 Indicadores por Foco / Desafio (Ex: Brigas, Vícios, etc.)")
-    resumo_foco = df_atendimentos.groupby("motivo").size().reset_index(name="Quantidade de Ocorrências")
-    st.dataframe(resumo_foco, use_container_width=True)
-    
-    foco_escolhido = st.selectbox("Filtrar detalhes por Foco específico:", ["Todos"] + list(df_atendimentos["motivo"].unique()))
-    df_detalhe_foco = df_atendimentos if foco_escolhido == "Todos" else df_atendimentos[df_atendimentos["motivo"] == foco_escolhido]
-    st.markdown(f"**Registros detalhados ({len(df_detalhe_foco)}):**")
-    st.dataframe(df_detalhe_foco, use_container_width=True)
-
-  else:
-    st.subheader("📋 Lista Completa de Atendimentos Registrados")
-    st.dataframe(df_atendimentos, use_container_width=True)
-
-  # --- SEÇÃO DE GERENCIAMENTO (EDITAR / EXCLUIR REGISTROS DE ACOMPANHAMENTO) ---
-  st.markdown("---")
-  st.subheader("⚙️ Gerenciar, Editar ou Excluir Registros de Acompanhamento")
-  
-  lista_ids_atendimentos = [f"ID {row['id']} - Casal: {row['casal_alvo']} ({row['data_atendimento']})" for _, row in df_atendimentos.iterrows()]
-  atendimento_selecionado_str = st.selectbox("Selecione o atendimento para alterar ou excluir:", lista_ids_atendimentos)
-  
-  if atendimento_selecionado_str:
-    id_selecionado = int(atendimento_selecionado_str.split(" - ")[0].replace("ID", "").strip())
-    reg_atual = df_atendimentos[df_atendimentos["id"] == id_selecionado].iloc[0]
-    
-    with st.form(f"form_edicao_atendimento_{id_selecionado}"):
-      st.markdown(f"**Editando Atendimento ID: {id_selecionado}**")
-      
-      novo_casal_alvo = st.text_input("Casal Alvo", value=str(reg_atual["casal_alvo"]))
-      novo_lider_resp = st.text_input("Casal Líder Responsável", value=str(reg_atual["casal_lider"]))
-      novo_tipo_atend = st.selectbox("Tipo de Atendimento", ["Aconselhamento", "Visita no Lar"], index=0 if reg_atual["tipo"]=="Aconselhamento" else 1)
-      novo_motivo = st.text_input("Foco / Desafio", value=str(reg_atual["motivo"]))
-      nova_data = st.text_input("Data do Atendimento", value=str(reg_atual["data_atendimento"]))
-      nova_desc = st.text_area("Detalhes", value=str(reg_atual["descricao"]))
-      
-      col_f1, col_f2 = st.columns(2)
-      salvar_edicao = col_f1.form_submit_button("💾 Salvar Alterações", type="primary")
-      excluir_atendimento = col_f2.form_submit_button("🗑️ Excluir este Atendimento", type="secondary")
-      
-      if salvar_edicao:
-        conn = sqlite3.connect("acompanhamento.db")
-        cur = conn.cursor()
-        cur.execute("""
-            UPDATE registros 
-            SET casal_alvo = ?, casal_lider = ?, tipo = ?, motivo = ?, data_atendimento = ?, descricao = ?
-            WHERE id = ?
-        """, (novo_casal_alvo, novo_lider_resp, novo_tipo_atend, novo_motivo, nova_data, nova_desc, id_selecionado))
-        conn.commit()
-        conn.close()
-        st.success("✅ Atendimento atualizado com sucesso!")
-        st.rerun()
+    if st.session_state.get("imprimir_acompanhamento", False):
+        st.markdown("---")
+        st.markdown(f"#### 📄 Visualização de Impressão: {tipo_relatorio}")
         
-      if excluir_atendimento:
-        conn = sqlite3.connect("acompanhamento.db")
-        cur = conn.cursor()
-        cur.execute("DELETE FROM registros WHERE id = ?", (id_selecionado,))
-        conn.commit()
-        conn.close()
-        st.success("🗑️ Atendimento excluído com sucesso!")
-        st.rerun()
+        html_conteudo_imp = f"""
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2>Relatório Pastoral - Casamento com Propósito</h2>
+            <h3>{tipo_relatorio}</h3>
+            <hr>
+        """
+        if "Relatório por Casal Líder" in tipo_relatorio:
+            resumo_lider_imp = df_atendimentos.groupby("casal_lider").size().reset_index(name="Total de Atendimentos")
+            html_conteudo_imp += resumo_lider_imp.to_html(index=False)
+        elif "Foco / Desafio" in tipo_relatorio:
+            resumo_foco_imp = df_atendimentos.groupby("motivo").size().reset_index(name="Quantidade de Ocorrências")
+            html_conteudo_imp += resumo_foco_imp.to_html(index=False)
+        else:
+            html_conteudo_imp += df_atendimentos.to_html(index=False)
+            
+        html_conteudo_imp += "</div>"
+        
+        components.html(html_conteudo_imp, height=350, scrolling=True)
+        
+        script_print_atendimento = """
+        <script>
+        function imprimirAtendimentos() {
+            var win = window.open('', '', 'height=700,width=900');
+            win.document.write(document.querySelector('iframe').contentDocument.documentElement.innerHTML);
+            win.document.close();
+            win.focus();
+            setTimeout(() => { win.print(); }, 500);
+        }
+        </script>
+        <button onclick="imprimirAtendimentos()" style="background-color: #16a34a; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-bottom: 15px;">
+            🖨️ Clique Aqui para Imprimir esta Página
+        </button>
+        """
+        components.html(script_print_atendimento, height=60)
+
+    # --- EXIBIÇÕES DAS VISÕES DE RELATÓRIO ---
+    if "Relatório por Casal Líder" in tipo_relatorio:
+        st.subheader("👥 Carga de Acompanhamentos por Casal Líder")
+        resumo_lider = df_atendimentos.groupby("casal_lider").size().reset_index(name="Total de Atendimentos")
+        st.dataframe(resumo_lider, use_container_width=True)
+        
+        lider_escolhido = st.selectbox("Filtrar detalhes por Casal Líder específico:", ["Todos"] + list(df_atendimentos["casal_lider"].unique()))
+        df_detalhe_lider = df_atendimentos if lider_escolhido == "Todos" else df_atendimentos[df_atendimentos["casal_lider"] == lider_escolhido]
+        st.markdown(f"**Registros detalhados ({len(df_detalhe_lider)}):**")
+        st.dataframe(df_detalhe_lider, use_container_width=True)
+
+    elif "Foco / Desafio" in tipo_relatorio:
+        st.subheader("🎯 Indicadores por Foco / Desafio (Ex: Brigas, Vícios, etc.)")
+        resumo_foco = df_atendimentos.groupby("motivo").size().reset_index(name="Quantidade de Ocorrências")
+        st.dataframe(resumo_foco, use_container_width=True)
+        
+        foco_escolhido = st.selectbox("Filtrar detalhes por Foco específico:", ["Todos"] + list(df_atendimentos["motivo"].unique()))
+        df_detalhe_foco = df_atendimentos if foco_escolhido == "Todos" else df_atendimentos[df_atendimentos["motivo"] == foco_escolhido]
+        st.markdown(f"**Registros detalhados ({len(df_detalhe_foco)}):**")
+        st.dataframe(df_detalhe_foco, use_container_width=True)
+
+    else:
+        st.subheader("📋 Lista Completa de Atendimentos Registrados")
+        st.dataframe(df_atendimentos, use_container_width=True)
+
+    # --- SEÇÃO DE GERENCIAMENTO CORRIGIDA (EDITAR / EXCLUIR REGISTROS DE ACOMPANHAMENTO) ---
+    st.markdown("---")
+    st.subheader("⚙️ Gerenciar, Editar ou Excluir Registros de Acompanhamento")
+    
+    lista_ids_atendimentos = [f"ID {row['id']} - Casal: {row['casal_alvo']} ({row['data_atendimento']})" for _, row in df_atendimentos.iterrows()]
+    atendimento_selecionado_str = st.selectbox("Selecione o atendimento para alterar ou excluir:", lista_ids_atendimentos, key="select_gestao_atendimento")
+    
+    if atendimento_selecionado_str:
+        id_selecionado = int(atendimento_selecionado_str.split(" - ")[0].replace("ID", "").strip())
+        reg_atual = df_atendimentos[df_atendimentos["id"] == id_selecionado].iloc[0]
+        
+        st.markdown(f"#### Editando Registros do Atendimento ID: `{id_selecionado}`")
+        
+        # O uso do formulário dinâmico com a chave contendo o ID força o re-render dos dados
+        with st.form(key=f"form_edicao_atend_{id_selecionado}"):
+            c_ed1, c_ed2 = st.columns(2)
+            novo_casal_alvo = c_ed1.text_input("Casal Alvo", value=str(reg_atual["casal_alvo"]), key=f"alvo_{id_selecionado}")
+            novo_lider_resp = c_ed2.text_input("Casal Líder Responsável", value=str(reg_atual["casal_lider"]), key=f"lider_{id_selecionado}")
+            
+            c_ed3, c_ed4, c_ed5 = st.columns(3)
+            opcoes_tipo = ["Aconselhamento", "Visita no Lar"]
+            idx_tipo = 0 if reg_atual["tipo"] in opcoes_tipo and reg_atual["tipo"] == "Aconselhamento" else (1 if reg_atual["tipo"] in opcoes_tipo else 0)
+            novo_tipo_atend = c_ed3.selectbox("Tipo de Atendimento", opcoes_tipo, index=idx_tipo, key=f"tipo_{id_selecionado}")
+            novo_motivo = c_ed4.text_input("Foco / Desafio", value=str(reg_atual["motivo"]), key=f"motivo_{id_selecionado}")
+            nova_data = c_ed5.text_input("Data do Atendimento", value=str(reg_atual["data_atendimento"]), key=f"data_{id_selecionado}")
+            
+            nova_desc = st.text_area("Detalhes (Orientação, Oração, etc.)", value=str(reg_atual["descricao"]), key=f"desc_{id_selecionado}")
+            
+            col_b1, col_b2 = st.columns(2)
+            salvar_edicao = col_b1.form_submit_button("💾 Salvar Alterações", type="primary", use_container_width=True)
+            excluir_atendimento = col_b2.form_submit_button("🗑️ Excluir este Registro", type="secondary", use_container_width=True)
+            
+            if salvar_edicao:
+                conn = sqlite3.connect("acompanhamento.db")
+                cur = conn.cursor()
+                cur.execute("""
+                    UPDATE registros 
+                    SET casal_alvo = ?, casal_lider = ?, tipo = ?, motivo = ?, data_atendimento = ?, descricao = ?
+                    WHERE id = ?
+                """, (novo_casal_alvo, novo_lider_resp, novo_tipo_atend, novo_motivo, nova_data, nova_desc, id_selecionado))
+                conn.commit()
+                conn.close()
+                st.success("✅ Registro atualizado com sucesso no Banco de Dados!")
+                st.rerun()
+                
+            if excluir_atendimento:
+                conn = sqlite3.connect("acompanhamento.db")
+                cur = conn.cursor()
+                cur.execute("DELETE FROM registros WHERE id = ?", (id_selecionado,))
+                conn.commit()
+                conn.close()
+                st.success("🗑️ Registro de atendimento removido com sucesso!")
+                st.rerun()
 
 else:
-  st.info("ℹ️ Nenhum acompanhamento registrado no banco de dados ainda. Utilize a barra lateral para registrar o primeiro atendimento.")
-
+    st.info("ℹ️ Nenhum acompanhamento registrado no banco de dados ainda. Utilize a barra lateral para registrar o primeiro atendimento.")
 # --- BOTÃO SAIR DO SISTEMA ---
 st.markdown("<br><br>", unsafe_allow_html=True)
 cols_centro = st.columns([2, 1, 2])

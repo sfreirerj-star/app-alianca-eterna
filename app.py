@@ -696,119 +696,121 @@ with cols_centro[1]:
     st.session_state["acao_gestao"] = "listar"
     st.rerun()
 
-# --- REGISTRO DE ACOMPANHAMENTO NA BARRA LATERAL ---
-st.sidebar.markdown("---")
-st.sidebar.subheader("📝 Registrar Acompanhamento")
+# --- REGISTRO DE ACOMPANHAMENTO NA BARRA LATERAL (PROTEGIDO) ---
+# Só será desenhado na barra lateral se o usuário estiver autenticado (logado_agora = True)
+if st.session_state.get("logado_agora", False):
+  st.sidebar.markdown("---")
+  st.sidebar.subheader("📝 Registrar Acompanhamento")
 
-try:
-  col_n1_lat = db.obter_coluna_segura(df, ["Nome completo", "Nome"], 1)
-  col_n2_lat = db.obter_coluna_segura(df, ["cônjuge", "conjuge"], 7)
-except Exception:
-  col_n1_lat = ""
-  col_n2_lat = ""
+  try:
+    col_n1_lat = db.obter_coluna_segura(df, ["Nome completo", "Nome"], 1)
+    col_n2_lat = db.obter_coluna_segura(df, ["cônjuge", "conjuge"], 7)
+  except Exception:
+    col_n1_lat = ""
+    col_n2_lat = ""
 
-lista_casais = []
-try:
-  if not df.empty:
-    for num_seq, (idx, row) in enumerate(df.iterrows(), start=1):
-      eh_lider = str(row.get("Perfil", "")) == "⭐ Líder"
-      
-      # OCULTA OS LÍDERES DA LISTA DE CASAIS ACOMPANHADOS
-      if eh_lider:
-        continue
+  lista_casais = []
+  try:
+    if not df.empty:
+      for num_seq, (idx, row) in enumerate(df.iterrows(), start=1):
+        eh_lider = str(row.get("Perfil", "")) == "⭐ Líder"
         
-      n1 = str(row.get(col_n1_lat, ""))
-      n2 = str(row.get(col_n2_lat, ""))
-      nome_formatado = f"{n1} & {n2}" if n2 else n1
-      lista_casais.append(f"{num_seq}: {nome_formatado}")
-  else:
+        # OCULTA OS LÍDERES DA LISTA DE CASAIS ACOMPANHADOS
+        if eh_lider:
+          continue
+          
+        n1 = str(row.get(col_n1_lat, ""))
+        n2 = str(row.get(col_n2_lat, ""))
+        nome_formatado = f"{n1} & {n2}" if n2 else n1
+        lista_casais.append(f"{num_seq}: {nome_formatado}")
+    else:
+      lista_casais = ["Nenhum casal disponível"]
+  except Exception:
     lista_casais = ["Nenhum casal disponível"]
-except Exception:
-  lista_casais = ["Nenhum casal disponível"]
 
-casal_escolhido = st.sidebar.selectbox(
-    "Casal Sendo Acompanhado",
-    lista_casais if lista_casais else ["Nenhum casal disponível"],
-)
+  casal_escolhido = st.sidebar.selectbox(
+      "Casal Sendo Acompanhado",
+      lista_casais if lista_casais else ["Nenhum casal disponível"],
+  )
 
-try:
-  df_lideres_atuais = df[df["Perfil"] == "⭐ Líder"]
-  lista_lideres_resp = []
-  for _, row in df_lideres_atuais.iterrows():
-    ln1 = str(row.get(col_n1_lat, ""))
-    ln2 = str(row.get(col_n2_lat, ""))
-    if ln1 or ln2:
-      lista_lideres_resp.append(f"{ln1} & {ln2}" if ln2 else ln1)
-  if not lista_lideres_resp:
-    lista_lideres_resp = ["Nenhum líder cadastrado"]
-except:
-  lista_lideres_resp = [
-      "Marcelo & Gilmara",
-      "Tony & Jessica",
-      "Bruno & Marluce",
-      "Jessica & Arlindo",
-      "Thiago & Amanda",
-  ]
+  try:
+    df_lideres_atuais = df[df["Perfil"] == "⭐ Líder"]
+    lista_lideres_resp = []
+    for _, row in df_lideres_atuais.iterrows():
+      ln1 = str(row.get(col_n1_lat, ""))
+      ln2 = str(row.get(col_n2_lat, ""))
+      if ln1 or ln2:
+        lista_lideres_resp.append(f"{ln1} & {ln2}" if ln2 else ln1)
+    if not lista_lideres_resp:
+      lista_lideres_resp = ["Nenhum líder cadastrado"]
+  except:
+    lista_lideres_resp = [
+        "Marcelo & Gilmara",
+        "Tony & Jessica",
+        "Bruno & Marluce",
+        "Jessica & Arlindo",
+        "Thiago & Amanda",
+    ]
 
-casal_lider_resp = st.sidebar.selectbox(
-    "Casal Líder Responsável",
-    lista_lideres_resp,
-)
+  casal_lider_resp = st.sidebar.selectbox(
+      "Casal Líder Responsável",
+      lista_lideres_resp,
+  )
 
-tipo_acao = st.sidebar.selectbox(
-    "Tipo de Atendimento", ["Aconselhamento", "Visita no Lar"]
-)
+  tipo_acao = st.sidebar.selectbox(
+      "Tipo de Atendimento", ["Aconselhamento", "Visita no Lar"]
+  )
 
-foco_atendimento = st.sidebar.selectbox(
-    "🎯 Foco / Desafio do Atendimento",
-    [
-        "Brigas Conjugais / Conflitos",
-        "Infidelidade",
-        "Violência Doméstica",
-        "Vícios",
-        "Processo de Separação",
-        "Outros / Geral",
-    ],
-)
+  foco_atendimento = st.sidebar.selectbox(
+      "🎯 Foco / Desafio do Atendimento",
+      [
+          "Brigas Conjugais / Conflitos",
+          "Infidelidade",
+          "Violência Doméstica",
+          "Vícios",
+          "Processo de Separação",
+          "Outros / Geral",
+      ],
+  )
 
-data_padrao_hoje = datetime.now().strftime("%d/%m/%Y")
-data_atendimento_str = st.sidebar.text_input(
-    "Data do Atendimento (DD/MM/AAAA)", value=data_padrao_hoje
-)
+  data_padrao_hoje = datetime.now().strftime("%d/%m/%Y")
+  data_atendimento_str = st.sidebar.text_input(
+      "Data do Atendimento (DD/MM/AAAA)", value=data_padrao_hoje
+  )
 
-descricao_detalhes = st.sidebar.text_area(
-    "Detalhes (Oração, orientações, auxílio, etc.)"
-)
+  descricao_detalhes = st.sidebar.text_area(
+      "Detalhes (Oração, orientações, auxílio, etc.)"
+  )
 
-if st.sidebar.button("Salvar Registro de Acompanhamento"):
-  if (
-      casal_escolhido
-      and casal_escolhido != "Nenhum casal disponível"
-      and descricao_detalhes
-  ):
-    try:
-      conn = sqlite3.connect("acompanhamento.db")
-      cursor = conn.cursor()
-      cursor.execute("""
-          CREATE TABLE IF NOT EXISTS registros (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              casal_alvo TEXT,
-              casal_lider TEXT,
-              tipo TEXT,
-              motivo TEXT,
-              data_atendimento TEXT,
-              descricao TEXT
-          )
-      """)
-      cursor.execute("""
-          INSERT INTO registros (casal_alvo, casal_lider, tipo, motivo, data_atendimento, descricao)
-          VALUES (?, ?, ?, ?, ?, ?)
-      """, (casal_escolhido, casal_lider_resp, tipo_acao, foco_atendimento, data_atendimento_str, descricao_detalhes))
-      conn.commit()
-      conn.close()
-      st.sidebar.success("✅ Acompanhamento registrado e salvo com sucesso!")
-      st.rerun()
-    except Exception as e:
-      st.sidebar.error(f"❌ Erro ao salvar no banco: {e}")
-  else:
-    st.sidebar.error("Preencha todos os campos e selecione um casal válido.")
+  if st.sidebar.button("Salvar Registro de Acompanhamento"):
+    if (
+        casal_escolhido
+        and casal_escolhido != "Nenhum casal disponível"
+        and descricao_detalhes
+    ):
+      try:
+        conn = sqlite3.connect("acompanhamento.db")
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS registros (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                casal_alvo TEXT,
+                casal_lider TEXT,
+                tipo TEXT,
+                motivo TEXT,
+                data_atendimento TEXT,
+                descricao TEXT
+            )
+        """)
+        cursor.execute("""
+            INSERT INTO registros (casal_alvo, casal_lider, tipo, motivo, data_atendimento, descricao)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (casal_escolhido, casal_lider_resp, tipo_acao, foco_atendimento, data_atendimento_str, descricao_detalhes))
+        conn.commit()
+        conn.close()
+        st.sidebar.success("✅ Acompanhamento registrado e salvo com sucesso!")
+        st.rerun()
+      except Exception as e:
+        st.sidebar.error(f"❌ Erro ao salvar no banco: {e}")
+    else:
+      st.sidebar.error("Preencha todos os campos e selecione um casal válido.")

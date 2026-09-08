@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 import re
 import agenda
 import auth
@@ -12,8 +13,8 @@ import streamlit.components.v1 as components
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
-    page_title="Gestão Pastoral - Ministério de Casais",
-    page_icon="💒",
+    page_title="Casamento com Propósito - Gestão Pastoral",
+    page_icon="icone.png",  # Ícone na aba do navegador
     layout="wide",
 )
 
@@ -76,7 +77,9 @@ if not df.empty:
   col_casamento = db.obter_coluna_segura(
       df, ["casamento", "união estável"], 10 if len(df.columns) > 10 else 0
   )
-  col_filhos = db.obter_coluna_segura(df, ["filhos do casal", "filhos"], len(df.columns) - 1)
+  col_filhos = db.obter_coluna_segura(
+      df, ["filhos do casal", "filhos"], len(df.columns) - 1
+  )
   col_filhos_fora = db.obter_coluna_segura(
       df, ["filhos fora do casamento", "fora do casamento"], len(df.columns) - 1
   )
@@ -108,394 +111,415 @@ if not df.empty:
 
   df_calc["Anos_Casados"] = anos_casados_lista
 
-  st.title("👩‍❤️‍👨 Sistema de Gestão Pastoral - Casais")
-  st.markdown("---")
+# --- LOGOTIPO E TÍTULO NO TOPO ---
+col_img, col_titulo = st.columns([1, 8])
+DIRETORIO_ATUAL = os.path.dirname(os.path.abspath(__file__))
+caminho_logo = os.path.join(DIRETORIO_ATUAL, "icone.png")
 
-  # --- PAINEL DE CONFIGURAÇÃO DE CASAL LÍDER ---
-  gestao_lideres.renderizar_painel_lideranca(df, col_nome1, col_conjuge)
+with col_img:
+  if os.path.exists(caminho_logo):
+    st.image(caminho_logo, width=90)
+  else:
+    st.warning("⚠️ Imagem não encontrada na pasta!")
 
-  st.markdown("---")
-  st.subheader("Painel de Gestão de Cadastros")
-  st.markdown("Selecione a ação desejada nos botões abaixo:")
+with col_titulo:
+  st.title("Sistema de Gestão Pastoral - Casais")
 
-  # --- OS 6 BOTÕES DO PAINEL PRINCIPAL ---
-  b_col1, b_col2, b_col3, b_col4, b_col5, b_col6 = st.columns(6)
+st.markdown("---")
 
-  with b_col1:
-    if st.button("📋 Consultar", use_container_width=True, key="btn_consultar"):
-      st.session_state["acao_gestao"] = "listar"
-      st.rerun()
+# --- PAINEL DE CONFIGURAÇÃO DE CASAL LÍDER ---
+gestao_lideres.renderizar_painel_lideranca(df, col_nome1, col_conjuge)
 
-  with b_col2:
-    if st.button("➕ Novo Casal", use_container_width=True, key="btn_novo"):
-      st.session_state["acao_gestao"] = "incluir"
-      st.rerun()
+st.markdown("---")
+st.subheader("Painel de Gestão de Cadastros")
+st.markdown("Selecione a ação desejada nos botões abaixo:")
 
-  with b_col3:
-    if st.button("✏️ Editar", use_container_width=True, key="btn_editar"):
-      st.session_state["acao_gestao"] = "editar"
-      st.rerun()
+# --- OS 6 BOTÕES DO PAINEL PRINCIPAL ---
+b_col1, b_col2, b_col3, b_col4, b_col5, b_col6 = st.columns(6)
 
-  with b_col4:
-    if st.button("🗑️ Excluir", use_container_width=True, key="btn_excluir"):
-      st.session_state["acao_gestao"] = "excluir"
-      st.rerun()
+with b_col1:
+  if st.button("📋 Consultar", use_container_width=True, key="btn_consultar"):
+    st.session_state["acao_gestao"] = "listar"
+    st.rerun()
 
-  with b_col5:
-    if st.button(
-        "📊 Relatórios", use_container_width=True, key="btn_relatorios"
+with b_col2:
+  if st.button("➕ Novo Casal", use_container_width=True, key="btn_novo"):
+    st.session_state["acao_gestao"] = "incluir"
+    st.rerun()
+
+with b_col3:
+  if st.button("✏️ Editar", use_container_width=True, key="btn_editar"):
+    st.session_state["acao_gestao"] = "editar"
+    st.rerun()
+
+with b_col4:
+  if st.button("🗑️ Excluir", use_container_width=True, key="btn_excluir"):
+    st.session_state["acao_gestao"] = "excluir"
+    st.rerun()
+
+with b_col5:
+  if st.button(
+      "📊 Relatórios", use_container_width=True, key="btn_relatorios"
+  ):
+    st.session_state["acao_gestao"] = "relatorios"
+    st.rerun()
+
+with b_col6:
+  if st.button("📅 Agenda", use_container_width=True, key="btn_agenda"):
+    st.session_state["acao_gestao"] = "agenda"
+    st.rerun()
+
+st.markdown("---")
+
+acao = st.session_state.get("acao_gestao", "listar")
+
+# --- 4. TELA DE CONSULTA ---
+if acao == "listar":
+  st.markdown("#### 📑 Registros Atuais na Base de Dados")
+  termo_busca = st.text_input(
+      "🔍 Busca Rápida (Digite o nome do cônjuge, telefone ou e-mail):", ""
+  )
+
+  df_filtrado = df.copy()
+  if termo_busca.strip():
+    filtro = (
+        df_filtrado.astype(str)
+        .apply(lambda x: x.str.contains(termo_busca, case=False, na=False))
+        .any(axis=1)
+    )
+    df_filtrado = df_filtrado[filtro]
+
+  # Ajusta o índice para começar em 1 em vez de 0
+  df_exibicao = df_filtrado.copy()
+  df_exibicao.index = range(1, len(df_exibicao) + 1)
+
+  try:
+    if "Perfil" in df_exibicao.columns:
+
+      def estilizar_lideres(row):
+        if str(row.get("Perfil", "")) == "⭐ Líder":
+          return [
+              "background-color: #d4edda; color: #155724; font-weight: bold;"
+          ] * len(row)
+        return [""] * len(row)
+
+      df_estilizado = df_exibicao.style.apply(estilizar_lideres, axis=1)
+      st.dataframe(df_estilizado, use_container_width=True, height=228)
+    else:
+      st.dataframe(df_exibicao, use_container_width=True, height=228)
+  except Exception:
+    st.dataframe(df_exibicao, use_container_width=True, height=228)
+
+  with st.expander(
+      "📊 Abrir Painéis, Estatísticas e Busca Avançada do Ministério"
+  ):
+    st.markdown("### Resumo Estatístico do Ministério")
+    col_est1, col_est2, col_est3 = st.columns(3)
+    col_est1.metric("Total de Casais Cadastrados", len(df))
+
+    if (
+        "Anos_Casados" in df_calc.columns
+        and not df_calc["Anos_Casados"].dropna().empty
     ):
-      st.session_state["acao_gestao"] = "relatorios"
-      st.rerun()
+      media_anos = df_calc["Anos_Casados"].mean()
+      col_est2.metric("Média de Anos de Casamento", f"{media_anos:.1f} anos")
+    else:
+      col_est2.metric("Média de Anos de Casamento", "N/D")
 
-  with b_col6:
-    if st.button("📅 Agenda", use_container_width=True, key="btn_agenda"):
-      st.session_state["acao_gestao"] = "agenda"
-      st.rerun()
-
-  st.markdown("---")
-
-  acao = st.session_state.get("acao_gestao", "listar")
-
-  # --- 4. TELA DE CONSULTA ---
-  if acao == "listar":
-    st.markdown("#### 📑 Registros Atuais na Base de Dados")
-    termo_busca = st.text_input(
-        "🔍 Busca Rápida (Digite o nome do cônjuge, telefone ou e-mail):", ""
+    total_filhos_registrados = (
+        df[col_filhos]
+        .apply(lambda x: len(str(x).split("\n")) if str(x).strip() else 0)
+        .sum()
+    )
+    col_est3.metric(
+        "Total de Filhos Registrados", int(total_filhos_registrados)
     )
 
-    df_filtrado = df.copy()
-    if termo_busca.strip():
-      filtro = (
-          df_filtrado.astype(str)
-          .apply(lambda x: x.str.contains(termo_busca, case=False, na=False))
-          .any(axis=1)
-      )
-      df_filtrado = df_filtrado[filtro]
-
-    try:
-      if "Perfil" in df_filtrado.columns:
-
-        def estilizar_lideres(row):
-          if str(row.get("Perfil", "")) == "⭐ Líder":
-            return ["background-color: #d4edda; color: #155724; font-weight: bold;"] * len(row)
-          return [""] * len(row)
-
-        df_estilizado = df_filtrado.style.apply(estilizar_lideres, axis=1)
-        st.dataframe(df_estilizado, use_container_width=True, height=228)
-      else:
-        st.dataframe(df_filtrado, use_container_width=True, height=228)
-    except Exception:
-      st.dataframe(df_filtrado, use_container_width=True, height=228)
-
-    with st.expander(
-        "📊 Abrir Painéis, Estatísticas e Busca Avançada do Ministério"
+    st.markdown("---")
+    st.markdown("### 📈 Gráficos e Distribuições (Tempo de Casamento)")
+    if (
+        "Anos_Casados" in df_calc.columns
+        and not df_calc["Anos_Casados"].dropna().empty
     ):
-      st.markdown("### Resumo Estatístico do Ministério")
-      col_est1, col_est2, col_est3 = st.columns(3)
-      col_est1.metric("Total de Casais Cadastrados", len(df))
 
-      if (
-          "Anos_Casados" in df_calc.columns
-          and not df_calc["Anos_Casados"].dropna().empty
-      ):
-        media_anos = df_calc["Anos_Casados"].mean()
-        col_est2.metric("Média de Anos de Casamento", f"{media_anos:.1f} anos")
-      else:
-        col_est2.metric("Média de Anos de Casamento", "N/D")
+      def faixa_tempo(anos):
+        if pd.isna(anos) or anos < 0:
+          return "Não Informado"
+        elif anos < 5:
+          return "Menos de 5 anos"
+        elif anos < 10:
+          return "5 a 9 anos"
+        elif anos < 20:
+          return "10 a 19 anos"
+        else:
+          return "20 anos ou mais"
 
-      total_filhos_registrados = (
-          df[col_filhos]
-          .apply(
-              lambda x: len(str(x).split("\n")) if str(x).strip() else 0
-          )
-          .sum()
+      df_calc["Faixa_Casamento"] = df_calc["Anos_Casados"].apply(faixa_tempo)
+      df_contagem = df_calc["Faixa_Casamento"].value_counts().reset_index()
+      df_contagem.columns = ["Faixa", "Quantidade"]
+
+      fig = px.pie(
+          df_contagem,
+          names="Faixa",
+          values="Quantidade",
+          title="Distribuição Percentual do Tempo de Casamento",
+          hole=0.4,
       )
-      col_est3.metric("Total de Filhos Registrados", int(total_filhos_registrados))
+      fig.update_traces(
+          textinfo="percent+label",
+          marker=dict(line=dict(color="#000000", width=1)),
+      )
+      st.plotly_chart(fig, use_container_width=True)
+    else:
+      st.info(
+          "ℹ️ Insira datas de casamento válidas nos registros para visualizar"
+          " o gráfico de distribuição."
+      )
 
-      st.markdown("---")
-      st.markdown("### 📈 Gráficos e Distribuições (Tempo de Casamento)")
-      if (
-          "Anos_Casados" in df_calc.columns
-          and not df_calc["Anos_Casados"].dropna().empty
-      ):
+# --- 5. OPÇÃO "INCLUIR NOVO CASAL" ---
+elif acao == "incluir":
+  with st.form("form_novo"):
+    st.markdown("### ➕ Cadastrar Novo Casal na Base Local")
+    c1, c2 = st.columns(2)
+    n1 = c1.text_input("Nome do Esposo(a) 1")
+    n2 = c2.text_input("Nome do Esposo(a) 2")
 
-        def faixa_tempo(anos):
-          if pd.isna(anos) or anos < 0:
-            return "Não Informado"
-          elif anos < 5:
-            return "Menos de 5 anos"
-          elif anos < 10:
-            return "5 a 9 anos"
-          elif anos < 20:
-            return "10 a 19 anos"
-          else:
-            return "20 anos ou mais"
+    c3, c4, c5 = st.columns(3)
+    tel = c3.text_input("Telefone")
+    email = c4.text_input("E-mail")
+    end = c5.text_input("Endereço")
 
-        df_calc["Faixa_Casamento"] = df_calc["Anos_Casados"].apply(faixa_tempo)
-        df_contagem = (
-            df_calc["Faixa_Casamento"].value_counts().reset_index()
+    c6, c7, c8 = st.columns(3)
+    dt_n1 = c6.text_input("Nascimento 1 (DD/MM/AAAA)")
+    dt_n2 = c7.text_input("Nascimento 2 (DD/MM/AAAA)")
+    dt_cas = c8.text_input("Data Casamento (DD/MM/AAAA)")
+
+    c9, c10 = st.columns(2)
+    est_civil = c9.text_input("Estado civil atual do casal")
+    igreja_origem = c10.text_input("Qual a igreja de origem do casal?")
+
+    c11, c12, c13 = st.columns(3)
+    tempo_cong = c11.text_input("Quanto tempo congregam na igreja atual?")
+    possui_filhos = c12.text_input("Possuem filhos?")
+    filhos_moram = c13.text_input("Os filhos moram com o casal?")
+
+    st.markdown("#### 👶 Dados dos Filhos do Casal")
+    f1_col1, f1_col2 = st.columns([3, 1])
+    filho_nome_1 = f1_col1.text_input("Nome Completo do Filho 1")
+    filho_nasc_1 = f1_col2.text_input("Data Nasc. Filho 1 (DD/MM/AAAA)")
+
+    f2_col1, f2_col2 = st.columns([3, 1])
+    filho_nome_2 = f2_col1.text_input("Nome Completo do Filho 2")
+    filho_nasc_2 = f2_col2.text_input("Data Nasc. Filho 2 (DD/MM/AAAA)")
+
+    st.markdown("#### 👶 Filhos Fora do Casamento")
+    ff1_col1, ff1_col2 = st.columns([3, 1])
+    filho_fora_nome_1 = ff1_col1.text_input(
+        "Nome Completo (Fora do Casamento)"
+    )
+    filho_fora_nasc_1 = ff1_col2.text_input("Data Nasc. (DD/MM/AAAA)")
+
+    c14, c15, c16, c17 = st.columns(4)
+    batizado = c14.text_input("Você é batizado(a)?")
+    membros = c15.text_input("Membros oficiais da igreja?")
+    celula = c16.text_input("Participam de célula/grupo pequeno?")
+    ministerio = c17.text_input("Servem a algum ministério? Qual?")
+
+    cadastrar = st.form_submit_button("➕ Salvar Novo Casal", type="primary")
+
+    if cadastrar:
+      lista_f = []
+      if filho_nome_1.strip():
+        lista_f.append(
+            f"{filho_nome_1.strip()} - Nasc: {filho_nasc_1.strip()}"
         )
-        df_contagem.columns = ["Faixa", "Quantidade"]
+      if filho_nome_2.strip():
+        lista_f.append(
+            f"{filho_nome_2.strip()} - Nasc: {filho_nasc_2.strip()}"
+        )
+      str_filhos_final = "\n".join(lista_f)
 
-        fig = px.pie(
-            df_contagem,
-            names="Faixa",
-            values="Quantidade",
-            title="Distribuição Percentual do Tempo de Casamento",
-            hole=0.4,
+      lista_ff = []
+      if filho_fora_nome_1.strip():
+        lista_ff.append(
+            f"{filho_fora_nome_1.strip()} - Nasc: {filho_fora_nasc_1.strip()}"
         )
-        fig.update_traces(
-            textinfo="percent+label",
-            marker=dict(line=dict(color="#000000", width=1)),
-        )
-        st.plotly_chart(fig, use_container_width=True)
-      else:
-        st.info(
-            "ℹ️ Insira datas de casamento válidas nos registros para visualizar"
-            " o gráfico de distribuição."
-        )
+      str_filhos_fora_final = "\n".join(lista_ff)
 
-  # --- 5. OPÇÃO "INCLUIR NOVO CASAL" ---
-  elif acao == "incluir":
-    with st.form("form_novo"):
-      st.markdown("### ➕ Cadastrar Novo Casal na Base Local")
+      novo_registro = {col: "" for col in df.columns}
+      if "Carimbo de data/hora" in df.columns:
+        novo_registro["Carimbo de data/hora"] = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+      novo_registro[col_nome1] = n1
+      novo_registro[col_conjuge] = n2
+      novo_registro[col_tel] = tel
+      if "E-mail:" in df.columns:
+        novo_registro["E-mail:"] = email
+      novo_registro[col_endereco] = end
+      novo_registro[col_nasc1] = dt_n1
+      novo_registro[col_nasc2] = dt_n2
+      novo_registro[col_casamento] = dt_cas
+      if col_filhos in df.columns:
+        novo_registro[col_filhos] = str_filhos_final
+      if col_filhos_fora in df.columns:
+        novo_registro[col_filhos_fora] = str_filhos_fora_final
+
+      df_novo = pd.DataFrame([novo_registro])
+      df_final = pd.concat([df, df_novo], ignore_index=True)
+      st.success("✅ Operação realizada com sucesso!")
+      st.rerun()
+
+# --- 6. OPÇÃO "EDITAR" ---
+elif acao == "editar":
+  opcoes_casais = []
+  for num_seq, (i, r) in enumerate(df.iterrows(), start=1):
+    n1 = str(r.get(col_nome1, ""))
+    n2 = str(r.get(col_conjuge, ""))
+    eh_lider = str(r.get("Perfil", "")) == "⭐ Líder"
+    prefixo = "⭐ [Líder] " if eh_lider else ""
+    nome_fmt = f"{n1} & {n2}" if n2 else n1
+    opcoes_casais.append((i, f"{num_seq}: {prefixo}{nome_fmt}"))
+
+  selecionado_label = st.selectbox(
+      "Selecione o Casal para editar:",
+      [opt[1] for opt in opcoes_casais],
+      key="select_edicao_casal",
+  )
+
+  if selecionado_label:
+    num_escolhido = int(selecionado_label.split(":")[0])
+    idx = opcoes_casais[num_escolhido - 1][0]
+
+    registro = df.loc[idx].to_dict()
+    chave_registro = db.obter_chave_unica(df.loc[idx])
+    eh_lider_atual = str(registro.get("Perfil", "")) == "⭐ Líder"
+
+    with st.form("form_edicao"):
+      st.markdown("### ✏️ Editando Dados e Perfil do Casal")
+
+      status_lideranca = st.checkbox(
+          "⭐ Marcar como Casal Líder", value=eh_lider_atual
+      )
+
       c1, c2 = st.columns(2)
-      n1 = c1.text_input("Nome do Esposo(a) 1")
-      n2 = c2.text_input("Nome do Esposo(a) 2")
+      n1 = c1.text_input(
+          "Nome do Esposo(a) 1", value=str(registro.get(col_nome1, ""))
+      )
+      n2 = c2.text_input(
+          "Nome do Esposo(a) 2", value=str(registro.get(col_conjuge, ""))
+      )
 
       c3, c4, c5 = st.columns(3)
-      tel = c3.text_input("Telefone")
-      email = c4.text_input("E-mail")
-      end = c5.text_input("Endereço")
+      tel = c3.text_input(
+          "Telefone", value=str(registro.get(col_tel, ""))
+      )
+      email = c4.text_input(
+          "E-mail", value=str(registro.get("E-mail:", ""))
+      )
+      end = c5.text_input(
+          "Endereço", value=str(registro.get(col_endereco, ""))
+      )
 
       c6, c7, c8 = st.columns(3)
-      dt_n1 = c6.text_input("Nascimento 1 (DD/MM/AAAA)")
-      dt_n2 = c7.text_input("Nascimento 2 (DD/MM/AAAA)")
-      dt_cas = c8.text_input("Data Casamento (DD/MM/AAAA)")
-
-      c9, c10 = st.columns(2)
-      est_civil = c9.text_input("Estado civil atual do casal")
-      igreja_origem = c10.text_input("Qual a igreja de origem do casal?")
-
-      c11, c12, c13 = st.columns(3)
-      tempo_cong = c11.text_input("Quanto tempo congregam na igreja atual?")
-      possui_filhos = c12.text_input("Possuem filhos?")
-      filhos_moram = c13.text_input("Os filhos moram com o casal?")
-
-      st.markdown("#### 👶 Dados dos Filhos do Casal")
-      f1_col1, f1_col2 = st.columns([3, 1])
-      filho_nome_1 = f1_col1.text_input("Nome Completo do Filho 1")
-      filho_nasc_1 = f1_col2.text_input("Data Nasc. Filho 1 (DD/MM/AAAA)")
-
-      f2_col1, f2_col2 = st.columns([3, 1])
-      filho_nome_2 = f2_col1.text_input("Nome Completo do Filho 2")
-      filho_nasc_2 = f2_col2.text_input("Data Nasc. Filho 2 (DD/MM/AAAA)")
-
-      st.markdown("#### 👶 Filhos Fora do Casamento")
-      ff1_col1, ff1_col2 = st.columns([3, 1])
-      filho_fora_nome_1 = ff1_col1.text_input(
-          "Nome Completo (Fora do Casamento)"
+      dt_n1 = c6.text_input(
+          "Nascimento 1 (DD/MM/AAAA)",
+          value=db.formatar_data_para_br(registro.get(col_nasc1, "")),
       )
-      filho_fora_nasc_1 = ff1_col2.text_input("Data Nasc. (DD/MM/AAAA)")
+      dt_n2 = c7.text_input(
+          "Nascimento 2 (DD/MM/AAAA)",
+          value=db.formatar_data_para_br(registro.get(col_nasc2, "")),
+      )
+      dt_cas = c8.text_input(
+          "Data de Casamento (DD/MM/AAAA)",
+          value=db.formatar_data_para_br(registro.get(col_casamento, "")),
+      )
 
-      c14, c15, c16, c17 = st.columns(4)
-      batizado = c14.text_input("Você é batizado(a)?")
-      membros = c15.text_input("Membros oficiais da igreja?")
-      celula = c16.text_input("Participam de célula/grupo pequeno?")
-      ministerio = c17.text_input("Servem a algum ministério? Qual?")
+      filhos_atual_texto = str(registro.get(col_filhos, ""))
+      st.markdown("#### 👶 Filhos do Casal (Formatados)")
+      st.markdown(db.formatar_exibicao_filhos(filhos_atual_texto))
 
-      cadastrar = st.form_submit_button("➕ Salvar Novo Casal", type="primary")
+      filhos_fora_texto = str(registro.get(col_filhos_fora, ""))
+      st.markdown("#### 👶 Filhos Fora do Casamento (Formatados)")
+      st.markdown(db.formatar_exibicao_filhos(filhos_fora_texto))
 
-      if cadastrar:
-        lista_f = []
-        if filho_nome_1.strip():
-          lista_f.append(
-              f"{filho_nome_1.strip()} - Nasc: {filho_nasc_1.strip()}"
-          )
-        if filho_nome_2.strip():
-          lista_f.append(
-              f"{filho_nome_2.strip()} - Nasc: {filho_nasc_2.strip()}"
-          )
-        str_filhos_final = "\n".join(lista_f)
+      salvar = st.form_submit_button("💾 Salvar Alterações", type="primary")
 
-        lista_ff = []
-        if filho_fora_nome_1.strip():
-          lista_ff.append(
-              f"{filho_fora_nome_1.strip()} - Nasc: {filho_fora_nasc_1.strip()}"
-          )
-        str_filhos_fora_final = "\n".join(lista_ff)
+      if salvar:
+        st.session_state["lideres_manuais"][chave_registro] = status_lideranca
+        db.salvar_lideres_json(st.session_state["lideres_manuais"])
 
-        novo_registro = {col: "" for col in df.columns}
-        if "Carimbo de data/hora" in df.columns:
-          novo_registro["Carimbo de data/hora"] = datetime.now().strftime(
-              "%Y-%m-%d %H:%M:%S"
-          )
-        novo_registro[col_nome1] = n1
-        novo_registro[col_conjuge] = n2
-        novo_registro[col_tel] = tel
+        df.loc[idx, col_nome1] = n1
+        df.loc[idx, col_conjuge] = n2
+        df.loc[idx, col_tel] = tel
         if "E-mail:" in df.columns:
-          novo_registro["E-mail:"] = email
-        novo_registro[col_endereco] = end
-        novo_registro[col_nasc1] = dt_n1
-        novo_registro[col_nasc2] = dt_n2
-        novo_registro[col_casamento] = dt_cas
-        if col_filhos in df.columns:
-          novo_registro[col_filhos] = str_filhos_final
-        if col_filhos_fora in df.columns:
-          novo_registro[col_filhos_fora] = str_filhos_fora_final
+          df.loc[idx, "E-mail:"] = email
+        df.loc[idx, col_endereco] = end
+        df.loc[idx, col_nasc1] = dt_n1
+        df.loc[idx, col_nasc2] = dt_n2
+        df.loc[idx, col_casamento] = dt_cas
 
-        df_novo = pd.DataFrame([novo_registro])
-        df_final = pd.concat([df, df_novo], ignore_index=True)
+        st.cache_data.clear()
         st.success("✅ Operação realizada com sucesso!")
         st.rerun()
 
-  # --- 6. OPÇÃO "EDITAR" ---
-  elif acao == "editar":
-    opcoes_casais = []
-    for i, r in df.iterrows():
-      n1 = str(r.get(col_nome1, ""))
-      n2 = str(r.get(col_conjuge, ""))
-      eh_lider = str(r.get("Perfil", "")) == "⭐ Líder"
-      prefixo = "⭐ [Líder] " if eh_lider else ""
-      nome_fmt = f"{n1} & {n2}" if n2 else n1
-      opcoes_casais.append((i, f"{i}: {prefixo}{nome_fmt}"))
+# --- 7. OPÇÃO "EXCLUIR" ---
+elif acao == "excluir":
+  st.warning(
+      "⚠️ Atenção: A exclusão de um registro é permanente na base de dados"
+      " local."
+  )
+  opcoes_excluir = []
+  for num_seq, (i, r) in enumerate(df.iterrows(), start=1):
+    n1 = str(r.get(col_nome1, ""))
+    n2 = str(r.get(col_conjuge, ""))
+    eh_lider = str(r.get("Perfil", "")) == "⭐ Líder"
+    prefixo = "⭐ [Líder] " if eh_lider else ""
+    nome_fmt = f"{n1} & {n2}" if n2 else n1
+    opcoes_excluir.append((i, f"{num_seq}: {prefixo}{nome_fmt}"))
 
-    selecionado_label = st.selectbox(
-        "Selecione o Casal para editar:",
-        [opt[1] for opt in opcoes_casais],
-        key="select_edicao_casal",
+  selecionado_excluir = st.selectbox(
+      "Selecione o Casal que deseja remover:",
+      [opt[1] for opt in opcoes_excluir],
+      key="select_excluir_casal",
+  )
+
+  if selecionado_excluir:
+    num_escolhido_exc = int(selecionado_excluir.split(":")[0])
+    idx_exc = opcoes_excluir[num_escolhido_exc - 1][0]
+
+    col_btn1, col_btn2 = st.columns([1, 4])
+    confirmar = col_btn1.button(
+        "🗑️ Confirmar Exclusão", key="btn_confirma_exclusao"
     )
 
-    if selecionado_label:
-      idx = int(selecionado_label.split(":")[0])
-      registro = df.loc[idx].to_dict()
-      chave_registro = db.obter_chave_unica(df.loc[idx])
-      eh_lider_atual = str(registro.get("Perfil", "")) == "⭐ Líder"
-
-      with st.form("form_edicao"):
-        st.markdown("### ✏️ Editando Dados e Perfil do Casal")
-
-        status_lideranca = st.checkbox(
-            "⭐ Marcar como Casal Líder", value=eh_lider_atual
-        )
-
-        c1, c2 = st.columns(2)
-        n1 = c1.text_input(
-            "Nome do Esposo(a) 1", value=str(registro.get(col_nome1, ""))
-        )
-        n2 = c2.text_input(
-            "Nome do Esposo(a) 2", value=str(registro.get(col_conjuge, ""))
-        )
-
-        c3, c4, c5 = st.columns(3)
-        tel = c3.text_input(
-            "Telefone", value=str(registro.get(col_tel, ""))
-        )
-        email = c4.text_input(
-            "E-mail", value=str(registro.get("E-mail:", ""))
-        )
-        end = c5.text_input(
-            "Endereço", value=str(registro.get(col_endereco, ""))
-        )
-
-        c6, c7, c8 = st.columns(3)
-        dt_n1 = c6.text_input(
-            "Nascimento 1 (DD/MM/AAAA)",
-            value=db.formatar_data_para_br(registro.get(col_nasc1, "")),
-        )
-        dt_n2 = c7.text_input(
-            "Nascimento 2 (DD/MM/AAAA)",
-            value=db.formatar_data_para_br(registro.get(col_nasc2, "")),
-        )
-        dt_cas = c8.text_input(
-            "Data de Casamento (DD/MM/AAAA)",
-            value=db.formatar_data_para_br(registro.get(col_casamento, "")),
-        )
-
-        filhos_atual_texto = str(registro.get(col_filhos, ""))
-        st.markdown("#### 👶 Filhos do Casal (Formatados)")
-        st.markdown(db.formatar_exibicao_filhos(filhos_atual_texto))
-
-        filhos_fora_texto = str(registro.get(col_filhos_fora, ""))
-        st.markdown("#### 👶 Filhos Fora do Casamento (Formatados)")
-        st.markdown(db.formatar_exibicao_filhos(filhos_fora_texto))
-
-        salvar = st.form_submit_button("💾 Salvar Alterações", type="primary")
-
-        if salvar:
-          st.session_state["lideres_manuais"][chave_registro] = status_lideranca
-          db.salvar_lideres_json(st.session_state["lideres_manuais"])
-
-          df.loc[idx, col_nome1] = n1
-          df.loc[idx, col_conjuge] = n2
-          df.loc[idx, col_tel] = tel
-          if "E-mail:" in df.columns:
-            df.loc[idx, "E-mail:"] = email
-          df.loc[idx, col_endereco] = end
-          df.loc[idx, col_nasc1] = dt_n1
-          df.loc[idx, col_nasc2] = dt_n2
-          df.loc[idx, col_casamento] = dt_cas
-
-          st.cache_data.clear()
-          st.success("✅ Operação realizada com sucesso!")
-          st.rerun()
-
-  # --- 7. OPÇÃO "EXCLUIR" ---
-  elif acao == "excluir":
-    st.warning(
-        "⚠️ Atenção: A exclusão de um registro é permanente na base de dados"
-        " local."
-    )
-    opcoes_excluir = []
-    for i, r in df.iterrows():
-      n1 = str(r.get(col_nome1, ""))
-      n2 = str(r.get(col_conjuge, ""))
-      eh_lider = str(r.get("Perfil", "")) == "⭐ Líder"
-      prefixo = "⭐ [Líder] " if eh_lider else ""
-      nome_fmt = f"{n1} & {n2}" if n2 else n1
-      opcoes_excluir.append((i, f"{i}: {prefixo}{nome_fmt}"))
-
-    selecionado_excluir = st.selectbox(
-        "Selecione o Casal que deseja remover:",
-        [opt[1] for opt in opcoes_excluir],
-        key="select_excluir_casal",
-    )
-
-    if selecionado_excluir:
-      idx_exc = int(selecionado_excluir.split(":")[0])
-      col_btn1, col_btn2 = st.columns([1, 4])
-      confirmar = col_btn1.button(
-          "🗑️ Confirmar Exclusão", key="btn_confirma_exclusao"
-      )
-
-      if confirmar:
-        df = df.drop(idx_exc).reset_index(drop=True)
-        st.success("✅ Operação realizada com sucesso!")
-        st.rerun()
-
-  # --- 8. OPÇÃO "RELATÓRIOS" ---
-  elif acao == "relatorios":
-    st.markdown("### 📊 Relatórios Pastorais por Ciclos de Casamento")
-    st.write(
-        "Gere o relatório completo com a distribuição dos casais baseada nas"
-        " fases do casamento."
-    )
-
-    if st.button(
-        "📊 Gerar Relatório por Ciclos", key="btn_gerar_relatorio_ciclos"
-    ):
-      st.session_state["html_relatorio"] = relatorios.gerar_html_relatorio()
+    if confirmar:
+      df = df.drop(idx_exc).reset_index(drop=True)
       st.success("✅ Operação realizada com sucesso!")
+      st.rerun()
 
-    if "html_relatorio" in st.session_state:
-      st.markdown("---")
-      st.subheader("Visualização para Impressão")
-      components.html(
-          st.session_state["html_relatorio"], height=600, scrolling=True
-      )
+# --- 8. OPÇÃO "RELATÓRIOS" ---
+elif acao == "relatorios":
+  st.markdown("### 📊 Relatórios Pastorais por Ciclos de Casamento")
+  st.write(
+      "Gere o relatório completo com a distribuição dos casais baseada nas"
+      " fases do casamento."
+  )
 
-      botao_imprimir = """
+  if st.button(
+      "📊 Gerar Relatório por Ciclos", key="btn_gerar_relatorio_ciclos"
+  ):
+    st.session_state["html_relatorio"] = relatorios.gerar_html_relatorio()
+    st.success("✅ Operação realizada com sucesso!")
+
+  if "html_relatorio" in st.session_state:
+    st.markdown("---")
+    st.subheader("Visualização para Impressão")
+    components.html(
+        st.session_state["html_relatorio"], height=600, scrolling=True
+    )
+
+    botao_imprimir = """
             <script>
             function imprimirRelatorio() {
                 var janela = window.open('', '', 'height=700,width=900');
@@ -509,21 +533,21 @@ if not df.empty:
                 🖨️ Imprimir / Salvar PDF do Relatório
             </button>
             """
-      components.html(botao_imprimir, height=80)
+    components.html(botao_imprimir, height=80)
 
-  # --- 9. OPÇÃO "AGENDA" ---
-  elif acao == "agenda":
-    agenda.modulo_agenda()
+# --- 9. OPÇÃO "AGENDA" ---
+elif acao == "agenda":
+  agenda.modulo_agenda()
 
-  st.markdown("<br><br>", unsafe_allow_html=True)
-  cols_centro = st.columns([2, 1, 2])
-  with cols_centro[1]:
-    if st.button(
-        "🚪 Sair do Sistema", use_container_width=True, key="btn_sair_sistema"
-    ):
-      st.session_state["logado_agora"] = False
-      st.session_state["acao_gestao"] = "listar"
-      st.rerun()
+st.markdown("<br><br>", unsafe_allow_html=True)
+cols_centro = st.columns([2, 1, 2])
+with cols_centro[1]:
+  if st.button(
+      "🚪 Sair do Sistema", use_container_width=True, key="btn_sair_sistema"
+  ):
+    st.session_state["logado_agora"] = False
+    st.session_state["acao_gestao"] = "listar"
+    st.rerun()
 
 # --- REGISTRO DE ACOMPANHAMENTO NA BARRA LATERAL ---
 st.sidebar.markdown("---")
@@ -539,13 +563,13 @@ except Exception:
 lista_casais = []
 try:
   if not df.empty:
-    for idx, row in df.iterrows():
+    for num_seq, (idx, row) in enumerate(df.iterrows(), start=1):
       n1 = str(row.get(col_n1_lat, ""))
       n2 = str(row.get(col_n2_lat, ""))
       eh_lider = str(row.get("Perfil", "")) == "⭐ Líder"
       prefixo = "⭐ [Líder] " if eh_lider else ""
       nome_formatado = f"{n1} & {n2}" if n2 else n1
-      lista_casais.append(f"{idx}: {prefixo}{nome_formatado}")
+      lista_casais.append(f"{num_seq}: {prefixo}{nome_formatado}")
   else:
     lista_casais = ["1: Marcelo & Gilmara"]
 except Exception:
@@ -556,7 +580,6 @@ casal_escolhido = st.sidebar.selectbox(
     lista_casais if lista_casais else ["Nenhum casal disponível"],
 )
 
-# Filtra apenas os casais que estão marcados como líderes processados para o selectbox abaixo
 try:
   df_lideres_atuais = df[df["Perfil"] == "⭐ Líder"]
   lista_lideres_resp = []
@@ -585,6 +608,19 @@ tipo_acao = st.sidebar.selectbox(
     "Tipo de Atendimento", ["Aconselhamento", "Visita no Lar"]
 )
 
+# ADICIONADO: Campo de Foco / Desafio do Atendimento
+foco_atendimento = st.sidebar.selectbox(
+    "🎯 Foco / Desafio do Atendimento",
+    [
+        "Brigas Conjugais / Conflitos",
+        "Infidelidade",
+        "Violência Doméstica",
+        "Vícios",
+        "Processo de Separação",
+        "Outros / Geral",
+    ],
+)
+
 data_padrao_hoje = datetime.now().strftime("%d/%m/%Y")
 data_atendimento_str = st.sidebar.text_input(
     "Data do Atendimento (DD/MM/AAAA)", value=data_padrao_hoje
@@ -600,6 +636,29 @@ if st.sidebar.button("Salvar Registro de Acompanhamento"):
       and casal_escolhido != "Nenhum casal disponível"
       and descricao_detalhes
   ):
-    st.sidebar.success("✅ Operação realizada com sucesso!")
+    import sqlite3
+    try:
+      conn = sqlite3.connect("acompanhamento.db")
+      cursor = conn.cursor()
+      cursor.execute("""
+          CREATE TABLE IF NOT EXISTS registros (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              casal_alvo TEXT,
+              casal_lider TEXT,
+              tipo TEXT,
+              motivo TEXT,
+              data_atendimento TEXT,
+              descricao TEXT
+          )
+      """)
+      cursor.execute("""
+          INSERT INTO registros (casal_alvo, casal_lider, tipo, motivo, data_atendimento, descricao)
+          VALUES (?, ?, ?, ?, ?, ?)
+      """, (casal_escolhido, casal_lider_resp, tipo_acao, foco_atendimento, data_atendimento_str, descricao_detalhes))
+      conn.commit()
+      conn.close()
+      st.sidebar.success("✅ Acompanhamento registrado e salvo com sucesso!")
+    except Exception as e:
+      st.sidebar.error(f"❌ Erro ao salvar no banco: {e}")
   else:
     st.sidebar.error("Preencha todos os campos e selecione um casal válido.")

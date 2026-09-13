@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import json
 import os
 from bs4 import BeautifulSoup
@@ -28,7 +28,6 @@ if MODO_MANUTENCAO:
 
 ARQUIVO_DADOS = "dados_painel.json"
 
-
 # --- CARREGAMENTO DE DADOS DO PAINEL COM SEGURANÇA ---
 try:
   if os.path.exists(ARQUIVO_DADOS):
@@ -51,6 +50,7 @@ if not isinstance(recado, dict):
 casais_msg = dados.get("casais_msg", {})
 if not isinstance(casais_msg, dict):
   casais_msg = {}
+
 
 # --- BUSCA AUTOMÁTICA DO DEVOCIONAL DIÁRIO DO SITE ---
 @st.cache_data(ttl=300)

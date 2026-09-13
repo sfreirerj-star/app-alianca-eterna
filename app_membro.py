@@ -52,15 +52,34 @@ casais_msg = dados.get("casais_msg", {})
 if not isinstance(casais_msg, dict):
   casais_msg = {}
 
-
 # --- BUSCA AUTOMÁTICA DO DEVOCIONAL DIÁRIO DO SITE ---
-@st.cache_data(ttl=3600)  # Atualiza a consulta a cada 1 hora
+@st.cache_data(ttl=300)
 def buscar_devocional_site():
-  hoje = datetime.now()
+  # Fuso horário oficial do Brasil (UTC-3)
+  fuso_brasil = timezone(timedelta(hours=-3))
+  hoje = datetime.now(fuso_brasil)
+
   dia_atual = hoje.day
   mes_atual = hoje.strftime("%m")
   ano_atual = hoje.strftime("%Y")
   data_formatada = hoje.strftime("%d/%m/%Y")
+
+  # Meses por extenso para achar exato como o site publica ("12 de Setembro de 2026")
+  meses_pt = {
+      "01": "Janeiro",
+      "02": "Fevereiro",
+      "03": "Março",
+      "04": "Abril",
+      "05": "Maio",
+      "06": "Junho",
+      "07": "Julho",
+      "08": "Agosto",
+      "09": "Setembro",
+      "10": "Outubro",
+      "11": "Novembro",
+      "12": "Dezembro",
+  }
+  string_data_site = f"{dia_atual} de {meses_pt.get(mes_atual, '')} de {ano_atual}"
 
   url = f"https://www.devocionaldiario.com.br/index.php?nMes={mes_atual}&nAno={ano_atual}"
 
@@ -74,54 +93,55 @@ def buscar_devocional_site():
     if response.status_code == 200:
       soup = BeautifulSoup(response.text, "html.parser")
 
-      # Localiza o bloco correspondente ao dia atual no site
-      artigos = soup.find_all(["div", "article", "section", "p"])
+      # Procura especificamente pelo título/cabeçalho da data no corpo do site (ex: "12 de Setembro de 2026")
       texto_encontrado = ""
+      elementos = soup.find_all(["div", "article", "section", "p", "span", "h3"])
 
-      for artigo in artigos:
-        if (
-            f"Dia {dia_atual}" in artigo.text
-            or f"{dia_atual}/{mes_atual}" in artigo.text
-        ):
-          texto_encontrado = artigo.text.strip()
+      for el in elementos:
+        if string_data_site.lower() in el.text.lower():
+          # Pega o elemento pai ou o próprio bloco de conteúdo que contém o texto do devocional
+          parent = el.find_parent(["div", "article"])
+          if parent:
+            texto_encontrado = parent.get_text().strip()
+          else:
+            texto_encontrado = el.text.strip()
           break
 
+      # Se não achou pelo texto exato, tenta achar o bloco do dia correspondente
       if not texto_encontrado:
-        primeiro_paragrafo = soup.find("p")
-        if primeiro_paragrafo:
-          texto_encontrado = primeiro_paragrafo.get_text()
+        for el in elementos:
+          if f"Dia {dia_atual}" in el.text:
+            texto_encontrado = el.text.strip()
+            break
 
       if texto_encontrado:
         return {
             "data": data_formatada,
             "titulo": f"Devocional Diário — {data_formatada}",
             "versiculo": "Palavra de Reflexão para Hoje",
-            "texto": (
-                texto_encontrado[:500] + "..."
-            ),  # Limita o tamanho para exibição limpa
+            "texto": texto_encontrado[:500] + "...",
             "link_original": url,
         }
   except Exception:
     pass
 
-  # Fallback seguro caso o site esteja instável ou fora do ar
+  # Fallback seguro caso ocorra algum erro na leitura
   return {
       "data": data_formatada,
-      "titulo": "Construindo uma Aliança Inabalável",
+      "titulo": f"Devocional Diário — {data_formatada}",
       "versiculo": (
-          '"Acima de tudo, porém, revistam-se do amor, que é o elo da perfeita'
-          ' união." — Colossenses 3:14'
+          '"Então, me invocareis, passareis a orar a mim, e eu vos ouvirei."'
+          " — Jeremias 29:12"
       ),
       "texto": (
-          "Fortalecendo a aliança familiar através do perdão, do diálogo"
-          " constante e dos princípios inegociáveis da Palavra de Deus."
+          "Buscando ao Senhor de todo o coração com fé e esperança na Sua"
+          " Palavra."
       ),
       "link_original": url,
   }
 
 
 dev = buscar_devocional_site()
-
 
 # --- INTERFACE DO APLICATIVO DOS MEMBROS ---
 st.title("Aliança Eterna")

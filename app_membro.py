@@ -594,5 +594,4 @@ st.markdown(
 </div>
 """,
     unsafe_allow_html=True,
->>>>>>> 4df8d733ef45fd949c39fa116d097c3a983ad95f
 )

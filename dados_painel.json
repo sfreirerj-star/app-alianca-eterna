@@ -1,20 +1,20 @@
 {
     "estudo": {
-        "texto": "",
-        "destino": "Toda a Igreja"
+        "destino": "Toda a Igreja",
+        "texto": "1ª Timóteo, 4: 13-16."
     },
     "recado": {
-        "texto": "",
-        "destino": "Toda a Igreja"
+        "destino": "Toda a Igreja",
+        "texto": "Propósito de toda a igreja para o congresso de departamentos."
     },
     "casais_msg": {
         "texto": "Em Breve, novidades!"
     },
     "devocional": {
         "data": "19/11/2026",
-        "titulo": "Devocional Diário — 19/11/2026",
-        "versiculo": "Palavra de Reflexão para Hoje",
         "texto": "19 de Novembro de 2026\t\t\n\n\n\"Jesus respondeu, e disse-lhe: Se tu conheceras o dom de Deus, e quem é o que te diz: Dá-me de beber, tu lhe pedirias, e ele te daria água viva.\" João 4:10\nPensamento: Jesus disse isso a uma mulher samaritana que lhe pediu água para matar a sede, e nos versos seguintes podemos ver Jesus falando que qualquer que bebesse dessa agua voltaria a ter sede, mas quem bebesse da agua viva, jamais teria sede outra vez. É isso que Deus quer de nós, que busquemos as coisas celestiais que saciam o espirito e duram a eternidade, e não andemos ocupados com as coisas deste mundo que são passageiras.\nOração: Deus obrigado por esse ensinamento, que eu possa mesmo buscar as coisas do céu, e que alcance graça diante do Senhor, perdoa as vezes que coloquei as coisas deste mundo acima do Senhor, cometendo pecado de idolatria, ajuda-me a ter olhos somente para as coisas do reino, eu oro em nome de Jesus. Amém.",
-        "link_site": "https://www.devocionaldiario.com.br/index.php?mes=11&ano=2026"
+        "titulo": "Devocional Diário — 19/11/2026",
+        "link_site": "https://www.devocionaldiario.com.br/index.php?mes=11&ano=2026",
+        "versiculo": "Palavra de Reflexão para Hoje"
     }
 }

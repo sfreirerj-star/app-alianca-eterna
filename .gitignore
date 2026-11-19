@@ -1,0 +1,8 @@
+
+.streamlit/secrets.toml
+
+.vs/
+secrets.toml
+.streamlit/secrets.toml
+senhaneon.txt
+__pycache__/

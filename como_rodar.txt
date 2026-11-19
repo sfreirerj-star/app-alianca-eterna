@@ -1,0 +1,14 @@
+==================================================
+        SISTEMA DE GESTÃO PASTORAL - GUIA
+==================================================
+
+1. COMO RODAR NO DIA A DIA (No seu PC):
+   - Basta dar dois cliques no arquivo: rodar.py
+   - O sistema vai abrir automaticamente no navegador (localhost:8501).
+
+2. COMO LEVAR PARA APRESENTAR EM OUTRO COMPUTADOR (Ex: Igreja):
+   - Leve a pasta "SistemaCasais" inteira em um pendrive.
+   - Instale o Python na máquina de destino (ATENÇÃO: Marque a opção "Add Python to PATH" na primeira tela!).
+   - Abra o terminal na pasta do projeto e digite o comando para instalar as dependências:
+     pip install streamlit pandas plotly
+   - Pronto! Dê dois cliques no "rodar.py" e o sistema funcionará perfeitamente.

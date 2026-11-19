@@ -1,0 +1,1032 @@
+from datetime import datetime
+import os
+import re
+import tomllib
+import agenda
+import auth
+import database as db
+import gestao_lideres
+import pandas as pd
+import plotly.express as px
+import psycopg2
+import relatorios
+import streamlit as st
+import streamlit.components.v1 as components
+
+# --- 1. CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(
+    page_title="Casamento com Propósito - Gestão Pastoral",
+    page_icon="icone.png",
+    layout="wide",
+)
+
+if "lideres_manuais" not in st.session_state:
+  st.session_state["lideres_manuais"] = db.carregar_lideres_json()
+
+if "acao_gestao" not in st.session_state:
+  st.session_state["acao_gestao"] = "listar"
+
+
+# --- FUNÇÕES DE LIGAÇÃO AO NEON (ACOMPANHAMENTOS) ---
+def _obter_database_url():
+  """Obtém a DATABASE_URL a partir do st.secrets, variáveis de ambiente ou .streamlit/secrets.toml."""
+  try:
+    if hasattr(st, "secrets") and "DATABASE_URL" in st.secrets:
+      return str(st.secrets["DATABASE_URL"]).strip()
+  except Exception:
+    pass
+
+  url_env = os.environ.get("DATABASE_URL")
+  if url_env and url_env.strip():
+    return url_env.strip()
+
+  caminho_secrets = os.path.join(".streamlit", "secrets.toml")
+  if os.path.exists(caminho_secrets):
+    try:
+      with open(caminho_secrets, "rb") as f:
+        data = tomllib.load(f)
+        if "DATABASE_URL" in data and str(data["DATABASE_URL"]).strip():
+          return str(data["DATABASE_URL"]).strip()
+    except Exception:
+      pass
+
+  return None
+
+
+def _conectar_neon():
+  """Abre uma ligação ao PostgreSQL do Neon e garante a existência da tabela registros_acompanhamento."""
+  url = _obter_database_url()
+  if not url:
+    raise RuntimeError(
+        "DATABASE_URL não configurada em st.secrets, ambiente ou"
+        " .streamlit/secrets.toml."
+    )
+
+  url_limpa = url.replace("&channel_binding=require", "").replace(
+      "?channel_binding=require&", "?"
+  )
+  conn = psycopg2.connect(url_limpa)
+  with conn.cursor() as cur:
+    cur.execute("""
+            CREATE TABLE IF NOT EXISTS registros_acompanhamento (
+                id SERIAL PRIMARY KEY,
+                casal_alvo TEXT NOT NULL,
+                casal_lider TEXT NOT NULL,
+                tipo TEXT NOT NULL,
+                motivo TEXT DEFAULT 'Outros / Geral',
+                data_atendimento TEXT NOT NULL,
+                descricao TEXT NOT NULL,
+                criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+  conn.commit()
+  return conn
+
+
+def carregar_atendimentos():
+  """Carrega os registos de acompanhamento diretamente da tabela registros_acompanhamento no Neon."""
+  conn = None
+  try:
+    conn = _conectar_neon()
+    query = """
+            SELECT
+                id,
+                casal_alvo,
+                casal_lider,
+                tipo,
+                motivo,
+                data_atendimento,
+                descricao
+            FROM registros_acompanhamento
+            ORDER BY id DESC
+        """
+    df_res = pd.read_sql_query(query, conn)
+    return df_res
+  except Exception as e:
+    st.error(f"❌ Erro ao carregar acompanhamentos do Neon: {e}")
+    return pd.DataFrame(
+        columns=[
+            "id",
+            "casal_alvo",
+            "casal_lider",
+            "tipo",
+            "motivo",
+            "data_atendimento",
+            "descricao",
+        ]
+    )
+  finally:
+    if conn is not None:
+      try:
+        conn.close()
+      except Exception:
+        pass
+
+
+# Estilização CSS isolada para os 6 botões principais do painel de navegação
+st.markdown(
+    """
+<style>
+    div.stHorizontalBlock > div div.stButton > button {
+        color: white !important;
+        border-radius: 6px !important;
+        border: none !important;
+        font-weight: 600 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.15) !important;
+        width: 100% !important;
+    }
+    div.stHorizontalBlock > div:nth-child(1) div.stButton > button { background-color: #2563eb !important; } 
+    div.stHorizontalBlock > div:nth-child(2) div.stButton > button { background-color: #16a34a !important; } 
+    div.stHorizontalBlock > div:nth-child(3) div.stButton > button { background-color: #ca8a04 !important; } 
+    div.stHorizontalBlock > div:nth-child(4) div.stButton > button { background-color: #dc2626 !important; } 
+    div.stHorizontalBlock > div:nth-child(5) div.stButton > button { background-color: #7c3aed !important; } 
+    div.stHorizontalBlock > div:nth-child(6) div.stButton > button { background-color: #0284c7 !important; } 
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
+# --- 2. CONTROLE DE LOGIN BLINDADO ---
+auth.verificar_autenticacao()
+
+# --- 3. CARREGAMENTO E PROCESSAMENTO DE DADOS ---
+df = db.obter_df_processado()
+
+if not df.empty:
+  col_nome1 = db.obter_coluna_segura(
+      df, ["Nome completo", "Nome"], 1 if len(df.columns) > 1 else 0
+  )
+  col_conjuge = db.obter_coluna_segura(
+      df, ["cônjuge", "conjuge"], 7 if len(df.columns) > 7 else 0
+  )
+  col_nasc1 = db.obter_coluna_segura(
+      df, ["Nascimento", "Data de Nascimento"], 2 if len(df.columns) > 2 else 0
+  )
+  col_endereco = db.obter_coluna_segura(
+      df, ["Endereço", "Endereco"], 3 if len(df.columns) > 3 else 0
+  )
+  col_tel = db.obter_coluna_segura(
+      df, ["Telefone", "Celular", "Contato"], 4 if len(df.columns) > 4 else 0
+  )
+  col_nasc2 = db.obter_coluna_segura(
+      df,
+      ["Nascimento: 2", "Data de Nascimento: 2", "Nascimento 2"],
+      8 if len(df.columns) > 8 else 0,
+  )
+  col_casamento = db.obter_coluna_segura(
+      df, ["casamento", "união estável"], 10 if len(df.columns) > 10 else 0
+  )
+  col_filhos = db.obter_coluna_segura(
+      df, ["filhos do casal", "filhos"], len(df.columns) - 1
+  )
+  col_filhos_fora = db.obter_coluna_segura(
+      df, ["filhos fora do casamento", "fora do casamento"], len(df.columns) - 1
+  )
+
+  df_calc = df.copy()
+  datas_casamento_str = df_calc[col_casamento].astype(str).str.strip()
+
+  anos_casados_lista = []
+  ano_atual = datetime.now().year
+
+  for val in datas_casamento_str:
+    ano_encontrado = None
+    match_ano = re.search(r"(19\d{2}|20\d{2})", val)
+    if match_ano:
+      ano_casamento = int(match_ano.group(1))
+      ano_encontrado = ano_atual - ano_casamento
+    else:
+      try:
+        dt = pd.to_datetime(val, dayfirst=True, errors="coerce")
+        if not pd.isna(dt):
+          ano_encontrado = ano_atual - dt.year
+      except Exception:
+        pass
+    anos_casados_lista.append(
+        ano_encontrado
+        if (ano_encontrado is not None and 0 <= ano_encontrado <= 80)
+        else None
+    )
+
+  df_calc["Anos_Casados"] = anos_casados_lista
+
+# --- LOGOTIPO E TÍTULO NO TOPO ---
+col_img, col_titulo = st.columns([1, 8])
+DIRETORIO_ATUAL = os.path.dirname(os.path.abspath(__file__))
+caminho_logo = os.path.join(DIRETORIO_ATUAL, "icone.png")
+
+with col_img:
+  if os.path.exists(caminho_logo):
+    st.image(caminho_logo, width=90)
+  else:
+    st.warning("⚠️ Imagem não encontrada na pasta!")
+
+with col_titulo:
+  st.title("Sistema de Gestão Pastoral - Casais")
+
+st.markdown("---")
+
+# --- PAINEL DE CONFIGURAÇÃO DE CASAL LÍDER ---
+gestao_lideres.renderizar_painel_lideranca(df, col_nome1, col_conjuge)
+
+st.markdown("---")
+st.subheader("Painel de Gestão de Cadastros")
+st.markdown("Selecione a ação desejada nos botões abaixo:")
+
+# --- OS 6 BOTÕES DO PAINEL PRINCIPAL ---
+b_col1, b_col2, b_col3, b_col4, b_col5, b_col6 = st.columns(6)
+
+with b_col1:
+  if st.button("📋 Consultar", use_container_width=True, key="btn_consultar"):
+    st.session_state["acao_gestao"] = "listar"
+    st.rerun()
+
+with b_col2:
+  if st.button("➕ Novo Casal", use_container_width=True, key="btn_novo"):
+    st.session_state["acao_gestao"] = "incluir"
+    st.rerun()
+
+with b_col3:
+  if st.button("✏️ Editar", use_container_width=True, key="btn_editar"):
+    st.session_state["acao_gestao"] = "editar"
+    st.rerun()
+
+with b_col4:
+  if st.button("🗑️ Excluir", use_container_width=True, key="btn_excluir"):
+    st.session_state["acao_gestao"] = "excluir"
+    st.rerun()
+
+with b_col5:
+  if st.button(
+      "📊 Relatórios", use_container_width=True, key="btn_relatorios"
+  ):
+    st.session_state["acao_gestao"] = "relatorios"
+    st.rerun()
+
+with b_col6:
+  if st.button("📅 Agenda", use_container_width=True, key="btn_agenda"):
+    st.session_state["acao_gestao"] = "agenda"
+    st.rerun()
+
+st.markdown("---")
+
+acao = st.session_state.get("acao_gestao", "listar")
+
+# --- 4. TELA DE CONSULTA ---
+if acao == "listar":
+  st.markdown("#### 📑 Registros Atuais na Base de Dados")
+  termo_busca = st.text_input(
+      "🔍 Busca Rápida (Digite o nome do cônjuge, telefone ou e-mail):", ""
+  )
+
+  df_filtrado = df.copy()
+  if termo_busca.strip():
+    filtro = (
+        df_filtrado.astype(str)
+        .apply(lambda x: x.str.contains(termo_busca, case=False, na=False))
+        .any(axis=1)
+    )
+    df_filtrado = df_filtrado[filtro]
+
+  df_exibicao = df_filtrado.copy()
+  df_exibicao.index = range(1, len(df_exibicao) + 1)
+
+  try:
+    if "Perfil" in df_exibicao.columns:
+
+      def estilizar_lideres(row):
+        if str(row.get("Perfil", "")) == "⭐ Líder":
+          return [
+              "background-color: #d4edda; color: #155724; font-weight: bold;"
+          ] * len(row)
+        return [""] * len(row)
+
+      df_estilizado = df_exibicao.style.apply(estilizar_lideres, axis=1)
+      st.dataframe(df_estilizado, use_container_width=True, height=228)
+    else:
+      st.dataframe(df_exibicao, use_container_width=True, height=228)
+  except Exception:
+    st.dataframe(df_exibicao, use_container_width=True, height=228)
+
+  with st.expander(
+      "📊 Abrir Painéis, Estatísticas e Busca Avançada do Ministério"
+  ):
+    st.markdown("### Resumo Estatístico do Ministério")
+    col_est1, col_est2, col_est3 = st.columns(3)
+    col_est1.metric("Total de Casais Cadastrados", len(df))
+
+    if (
+        "Anos_Casados" in df_calc.columns
+        and not df_calc["Anos_Casados"].dropna().empty
+    ):
+      media_anos = df_calc["Anos_Casados"].mean()
+      col_est2.metric("Média de Anos de Casamento", f"{media_anos:.1f} anos")
+    else:
+      col_est2.metric("Média de Anos de Casamento", "N/D")
+
+    total_filhos_registrados = (
+        df[col_filhos]
+        .apply(lambda x: len(str(x).split("\n")) if str(x).strip() else 0)
+        .sum()
+    )
+    col_est3.metric(
+        "Total de Filhos Registrados", int(total_filhos_registrados)
+    )
+
+    st.markdown("---")
+    st.markdown("### 📈 Gráficos e Distribuições (Tempo de Casamento)")
+    if (
+        "Anos_Casados" in df_calc.columns
+        and not df_calc["Anos_Casados"].dropna().empty
+    ):
+
+      def faixa_tempo(anos):
+        if pd.isna(anos) or anos < 0:
+          return "Não Informado"
+        elif anos < 5:
+          return "Menos de 5 anos"
+        elif anos < 10:
+          return "5 a 9 anos"
+        elif anos < 20:
+          return "10 a 19 anos"
+        else:
+          return "20 anos ou mais"
+
+      df_calc["Faixa_Casamento"] = df_calc["Anos_Casados"].apply(faixa_tempo)
+      df_contagem = df_calc["Faixa_Casamento"].value_counts().reset_index()
+      df_contagem.columns = ["Faixa", "Quantidade"]
+
+      fig = px.pie(
+          df_contagem,
+          names="Faixa",
+          values="Quantidade",
+          title="Distribuição Percentual do Tempo de Casamento",
+          hole=0.4,
+      )
+      fig.update_traces(
+          textinfo="percent+label",
+          marker=dict(line=dict(color="#000000", width=1)),
+      )
+      st.plotly_chart(fig, use_container_width=True)
+    else:
+      st.info(
+          "ℹ️ Insira datas de casamento válidas nos registros para visualizar"
+          " o gráfico de distribuição."
+      )
+
+# --- 5. OPÇÃO "INCLUIR NOVO CASAL" ---
+elif acao == "incluir":
+  with st.form("form_novo"):
+    st.markdown("### ➕ Cadastrar Novo Casal na Base Local")
+    c1, c2 = st.columns(2)
+    n1 = c1.text_input("Nome do Esposo(a) 1")
+    n2 = c2.text_input("Nome do Esposo(a) 2")
+
+    c3, c4, c5 = st.columns(3)
+    tel = c3.text_input("Telefone")
+    email = c4.text_input("E-mail")
+    end = c5.text_input("Endereço")
+
+    c6, c7, c8 = st.columns(3)
+    dt_n1 = c6.text_input("Nascimento 1 (DD/MM/AAAA)")
+    dt_n2 = c7.text_input("Nascimento 2 (DD/MM/AAAA)")
+    dt_cas = c8.text_input("Data Casamento (DD/MM/AAAA)")
+
+    c9, c10 = st.columns(2)
+    est_civil = c9.text_input("Estado civil atual do casal")
+    igreja_origem = c10.text_input("Qual a igreja de origem do casal?")
+
+    c11, c12, c13 = st.columns(3)
+    tempo_cong = c11.text_input("Quanto tempo congregam na igreja atual?")
+    possui_filhos = c12.text_input("Possuem filhos?")
+    filhos_moram = c13.text_input("Os filhos moram com o casal?")
+
+    st.markdown("#### 👶 Dados dos Filhos do Casal")
+    f1_col1, f1_col2 = st.columns([3, 1])
+    filho_nome_1 = f1_col1.text_input("Nome Completo do Filho 1")
+    filho_nasc_1 = f1_col2.text_input("Data Nasc. Filho 1 (DD/MM/AAAA)")
+
+    f2_col1, f2_col2 = st.columns([3, 1])
+    filho_nome_2 = f2_col1.text_input("Nome Completo do Filho 2")
+    filho_nasc_2 = f2_col2.text_input("Data Nasc. Filho 2 (DD/MM/AAAA)")
+
+    st.markdown("#### 👶 Filhos Fora do Casamento")
+    ff1_col1, ff1_col2 = st.columns([3, 1])
+    filho_fora_nome_1 = ff1_col1.text_input(
+        "Nome Completo (Fora do Casamento)"
+    )
+    filho_fora_nasc_1 = ff1_col2.text_input("Data Nasc. (DD/MM/AAAA)")
+
+    c14, c15, c16, c17 = st.columns(4)
+    batizado = c14.text_input("Você é batizado(a)?")
+    membros = c15.text_input("Membros oficiais da igreja?")
+    celula = c16.text_input("Participam de célula/grupo pequeno?")
+    ministerio = c17.text_input("Servem a algum ministério? Qual?")
+
+    cadastrar = st.form_submit_button("➕ Salvar Novo Casal", type="primary")
+
+    if cadastrar:
+      lista_f = []
+      if filho_nome_1.strip():
+        lista_f.append(
+            f"{filho_nome_1.strip()} - Nasc: {filho_nasc_1.strip()}"
+        )
+      if filho_nome_2.strip():
+        lista_f.append(
+            f"{filho_nome_2.strip()} - Nasc: {filho_nasc_2.strip()}"
+        )
+      str_filhos_final = "\n".join(lista_f)
+
+      lista_ff = []
+      if filho_fora_nome_1.strip():
+        lista_ff.append(
+            f"{filho_fora_nome_1.strip()} - Nasc: {filho_fora_nasc_1.strip()}"
+        )
+      str_filhos_fora_final = "\n".join(lista_ff)
+
+      novo_registro = {col: "" for col in df.columns}
+      if "Carimbo de data/hora" in df.columns:
+        novo_registro["Carimbo de data/hora"] = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+      novo_registro[col_nome1] = n1
+      novo_registro[col_conjuge] = n2
+      novo_registro[col_tel] = tel
+      if "E-mail:" in df.columns:
+        novo_registro["E-mail:"] = email
+      novo_registro[col_endereco] = end
+      novo_registro[col_nasc1] = dt_n1
+      novo_registro[col_nasc2] = dt_n2
+      novo_registro[col_casamento] = dt_cas
+      if col_filhos in df.columns:
+        novo_registro[col_filhos] = str_filhos_final
+      if col_filhos_fora in df.columns:
+        novo_registro[col_filhos_fora] = str_filhos_fora_final
+
+      df_novo = pd.DataFrame([novo_registro])
+      df = pd.concat([df, df_novo], ignore_index=True)
+      st.success("✅ Operação realizada com sucesso!")
+      st.rerun()
+
+# --- 6. OPÇÃO "EDITAR" ---
+elif acao == "editar":
+  opcoes_casais = []
+  for num_seq, (i, r) in enumerate(df.iterrows(), start=1):
+    n1 = str(r.get(col_nome1, ""))
+    n2 = str(r.get(col_conjuge, ""))
+    eh_lider = str(r.get("Perfil", "")) == "⭐ Líder"
+    prefixo = "⭐ [Líder] " if eh_lider else ""
+    nome_fmt = f"{n1} & {n2}" if n2 else n1
+    opcoes_casais.append((i, f"{num_seq}: {prefixo}{nome_fmt}"))
+
+  selecionado_label = st.selectbox(
+      "Selecione o Casal para editar:",
+      [opt[1] for opt in opcoes_casais],
+      key="select_edicao_casal",
+  )
+
+  if selecionado_label:
+    num_escolhido = int(selecionado_label.split(":")[0])
+    idx = opcoes_casais[num_escolhido - 1][0]
+
+    registro = df.loc[idx].to_dict()
+    chave_registro = db.obter_chave_unica(df.loc[idx])
+    eh_lider_atual = str(registro.get("Perfil", "")) == "⭐ Líder"
+
+    with st.form("form_edicao"):
+      st.markdown("### ✏️ Editando Dados e Perfil do Casal")
+
+      status_lideranca = st.checkbox(
+          "⭐ Marcar como Casal Líder", value=eh_lider_atual
+      )
+
+      c1, c2 = st.columns(2)
+      n1 = c1.text_input(
+          "Nome do Esposo(a) 1", value=str(registro.get(col_nome1, ""))
+      )
+      n2 = c2.text_input(
+          "Nome do Esposo(a) 2", value=str(registro.get(col_conjuge, ""))
+      )
+
+      c3, c4, c5 = st.columns(3)
+      tel = c3.text_input(
+          "Telefone", value=str(registro.get(col_tel, ""))
+      )
+      email = c4.text_input(
+          "E-mail", value=str(registro.get("E-mail:", ""))
+      )
+      end = c5.text_input(
+          "Endereço", value=str(registro.get(col_endereco, ""))
+      )
+
+      c6, c7, c8 = st.columns(3)
+      dt_n1 = c6.text_input(
+          "Nascimento 1 (DD/MM/AAAA)",
+          value=db.formatar_data_para_br(registro.get(col_nasc1, "")),
+      )
+      dt_n2 = c7.text_input(
+          "Nascimento 2 (DD/MM/AAAA)",
+          value=db.formatar_data_para_br(registro.get(col_nasc2, "")),
+      )
+      dt_cas = c8.text_input(
+          "Data de Casamento (DD/MM/AAAA)",
+          value=db.formatar_data_para_br(registro.get(col_casamento, "")),
+      )
+
+      filhos_atual_texto = str(registro.get(col_filhos, ""))
+      st.markdown("#### 👶 Filhos do Casal (Formatados)")
+      st.markdown(db.formatar_exibicao_filhos(filhos_atual_texto))
+
+      filhos_fora_texto = str(registro.get(col_filhos_fora, ""))
+      st.markdown("#### 👶 Filhos Fora do Casamento (Formatados)")
+      st.markdown(db.formatar_exibicao_filhos(filhos_fora_texto))
+
+      salvar = st.form_submit_button("💾 Salvar Alterações", type="primary")
+
+      if salvar:
+        st.session_state["lideres_manuais"][chave_registro] = status_lideranca
+        db.salvar_lideres_json(st.session_state["lideres_manuais"])
+
+        df.loc[idx, col_nome1] = n1
+        df.loc[idx, col_conjuge] = n2
+        df.loc[idx, col_tel] = tel
+        if "E-mail:" in df.columns:
+          df.loc[idx, "E-mail:"] = email
+        df.loc[idx, col_endereco] = end
+        df.loc[idx, col_nasc1] = dt_n1
+        df.loc[idx, col_nasc2] = dt_n2
+        df.loc[idx, col_casamento] = dt_cas
+
+        st.cache_data.clear()
+        st.success("✅ Operação realizada com sucesso!")
+        st.rerun()
+
+# --- 7. OPÇÃO "EXCLUIR" ---
+elif acao == "excluir":
+  st.warning(
+      "⚠️ Atenção: A exclusão de um registro é permanente na base de dados"
+      " local."
+  )
+  opcoes_excluir = []
+  for num_seq, (i, r) in enumerate(df.iterrows(), start=1):
+    n1 = str(r.get(col_nome1, ""))
+    n2 = str(r.get(col_conjuge, ""))
+    eh_lider = str(r.get("Perfil", "")) == "⭐ Líder"
+    prefixo = "⭐ [Líder] " if eh_lider else ""
+    nome_fmt = f"{n1} & {n2}" if n2 else n1
+    opcoes_excluir.append((i, f"{num_seq}: {prefixo}{nome_fmt}"))
+
+  selecionado_excluir = st.selectbox(
+      "Selecione o Casal que deseja remover:",
+      [opt[1] for opt in opcoes_excluir],
+      key="select_excluir_casal",
+  )
+
+  if selecionado_excluir:
+    num_escolhido_exc = int(selecionado_excluir.split(":")[0])
+    idx_exc = opcoes_excluir[num_escolhido_exc - 1][0]
+
+    col_btn1, col_btn2 = st.columns([1, 4])
+    confirmar = col_btn1.button(
+        "🗑️ Confirmar Exclusão", key="btn_confirma_exclusao"
+    )
+
+    if confirmar:
+      df = df.drop(idx_exc).reset_index(drop=True)
+      st.success("✅ Operação realizada com sucesso!")
+      st.rerun()
+
+# --- 8. OPÇÃO "RELATÓRIOS" ---
+elif acao == "relatorios":
+  st.markdown("### 📊 Relatórios Pastorais por Ciclos de Casamento")
+  st.write(
+      "Gere o relatório completo com a distribuição dos casais baseada nas"
+      " fases do casamento."
+  )
+
+  if st.button(
+      "📊 Gerar Relatório por Ciclos", key="btn_gerar_relatorio_ciclos"
+  ):
+    st.session_state["html_relatorio"] = relatorios.gerar_html_relatorio()
+    st.success("✅ Operação realizada com sucesso!")
+
+  if "html_relatorio" in st.session_state:
+    st.markdown("---")
+    st.subheader("Visualização para Impressão")
+    components.html(
+        st.session_state["html_relatorio"], height=600, scrolling=True
+    )
+
+    botao_imprimir = """
+            <script>
+            function imprimirRelatorio() {
+                var janela = window.open('', '', 'height=700,width=900');
+                janela.document.write(document.querySelector('iframe').contentDocument.documentElement.innerHTML);
+                janela.document.close();
+                janela.focus();
+                setTimeout(() => { janela.print(); }, 500);
+            }
+            </script>
+            <button onclick="imprimirRelatorio()" style="background-color: #2e75b6; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-top: 15px;">
+                🖨️ Imprimir / Salvar PDF do Relatório
+            </button>
+            """
+    components.html(botao_imprimir, height=80)
+
+  # --- BLOCO DE RELATÓRIOS DE ACOMPANHAMENTO PASTORAL (EXCLUSIVO NESTA TELA) ---
+  st.markdown("---")
+  st.header("📊 Relatórios e Indicadores de Acompanhamento Pastoral")
+
+  df_atendimentos = carregar_atendimentos()
+
+  if not df_atendimentos.empty:
+    tipo_relatorio = st.selectbox(
+        "🔍 Selecione a Visão do Relatório de Acompanhamento:",
+        [
+            "📋 Visão Geral (Todos os Atendimentos)",
+            "👥 Relatório por Casal Líder (Carga de Gestão / Casais sob tutela)",
+            "🎯 Relatório por Foco / Desafio do Atendimento (Estatísticas de Problemas)",
+        ],
+    )
+
+    if st.button("🖨️ Imprimir / Visualizar Relatório Selecionado para PDF"):
+      st.session_state["imprimir_acompanhamento"] = True
+
+    if st.session_state.get("imprimir_acompanhamento", False):
+      st.markdown("---")
+      st.markdown(f"#### 📄 Visualização de Impressão: {tipo_relatorio}")
+
+      html_conteudo_imp = f"""
+          <div style="font-family: Arial, sans-serif; padding: 20px;">
+              <h2>Relatório Pastoral - Casamento com Propósito</h2>
+              <h3>{tipo_relatorio}</h3>
+              <hr>
+          """
+      if "Relatório por Casal Líder" in tipo_relatorio:
+        resumo_lider_imp = (
+            df_atendimentos.groupby("casal_lider")
+            .size()
+            .reset_index(name="Total de Atendimentos")
+        )
+        html_conteudo_imp += resumo_lider_imp.to_html(index=False)
+      elif "Foco / Desafio" in tipo_relatorio:
+        resumo_foco_imp = (
+            df_atendimentos.groupby("motivo")
+            .size()
+            .reset_index(name="Quantidade de Ocorrências")
+        )
+        html_conteudo_imp += resumo_foco_imp.to_html(index=False)
+      else:
+        html_conteudo_imp += df_atendimentos.to_html(index=False)
+
+      html_conteudo_imp += "</div>"
+
+      components.html(html_conteudo_imp, height=350, scrolling=True)
+
+      script_print_atendimento = """
+          <script>
+          function imprimirAtendimentos() {
+              var win = window.open('', '', 'height=700,width=900');
+              win.document.write(document.querySelector('iframe').contentDocument.documentElement.innerHTML);
+              win.document.close();
+              win.focus();
+              setTimeout(() => { win.print(); }, 500);
+          }
+          </script>
+          <button onclick="imprimirAtendimentos()" style="background-color: #16a34a; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-bottom: 15px;">
+              🖨️ Clique Aqui para Imprimir esta Página
+          </button>
+          """
+      components.html(script_print_atendimento, height=60)
+
+    if "Relatório por Casal Líder" in tipo_relatorio:
+      st.subheader("👥 Carga de Acompanhamentos por Casal Líder")
+      resumo_lider = (
+          df_atendimentos.groupby("casal_lider")
+          .size()
+          .reset_index(name="Total de Atendimentos")
+      )
+      st.dataframe(resumo_lider, use_container_width=True)
+
+      lider_escolhido = st.selectbox(
+          "Filtrar detalhes por Casal Líder específico:",
+          ["Todos"] + list(df_atendimentos["casal_lider"].unique()),
+      )
+      df_detalhe_lider = (
+          df_atendimentos
+          if lider_escolhido == "Todos"
+          else df_atendimentos[df_atendimentos["casal_lider"] == lider_escolhido]
+      )
+      st.markdown(f"**Registros detalhados ({len(df_detalhe_lider)}):**")
+      st.dataframe(df_detalhe_lider, use_container_width=True)
+
+    elif "Foco / Desafio" in tipo_relatorio:
+      st.subheader("🎯 Indicadores por Foco / Desafio (Ex: Brigas, Vícios, etc.)")
+      resumo_foco = (
+          df_atendimentos.groupby("motivo")
+          .size()
+          .reset_index(name="Quantidade de Ocorrências")
+      )
+      st.dataframe(resumo_foco, use_container_width=True)
+
+      foco_escolhido = st.selectbox(
+          "Filtrar detalhes por Foco específico:",
+          ["Todos"] + list(df_atendimentos["motivo"].unique()),
+      )
+      df_detalhe_foco = (
+          df_atendimentos
+          if foco_escolhido == "Todos"
+          else df_atendimentos[df_atendimentos["motivo"] == foco_escolhido]
+      )
+      st.markdown(f"**Registros detalhados ({len(df_detalhe_foco)}):**")
+      st.dataframe(df_detalhe_foco, use_container_width=True)
+
+    else:
+      st.subheader("📋 Lista Completa de Atendimentos Registrados")
+      st.dataframe(df_atendimentos, use_container_width=True)
+
+    st.markdown("---")
+    st.subheader("⚙️ Gerenciar, Editar ou Excluir Registros de Acompanhamento")
+
+    lista_ids_atendimentos = [
+        f"ID {row['id']} - Casal: {row['casal_alvo']} ({row['data_atendimento']})"
+        for _, row in df_atendimentos.iterrows()
+    ]
+    atendimento_selecionado_str = st.selectbox(
+        "Selecione o atendimento para alterar ou excluir:",
+        lista_ids_atendimentos,
+        key="select_gestao_atendimento",
+    )
+
+    if atendimento_selecionado_str:
+      id_selecionado = int(
+          atendimento_selecionado_str.split(" - ")[0].replace("ID", "").strip()
+      )
+      reg_atual = df_atendimentos[df_atendimentos["id"] == id_selecionado].iloc[
+          0
+      ]
+
+      st.markdown(
+          f"#### Editando Registros do Atendimento ID: `{id_selecionado}`"
+      )
+
+      with st.form(key=f"form_edicao_atend_{id_selecionado}"):
+        c_ed1, c_ed2 = st.columns(2)
+        novo_casal_alvo = c_ed1.text_input(
+            "Casal Alvo",
+            value=str(reg_atual["casal_alvo"]),
+            key=f"alvo_{id_selecionado}",
+        )
+        novo_lider_resp = c_ed2.text_input(
+            "Casal Líder Responsável",
+            value=str(reg_atual["casal_lider"]),
+            key=f"lider_{id_selecionado}",
+        )
+
+        c_ed3, c_ed4, c_ed5 = st.columns(3)
+        opcoes_tipo = ["Aconselhamento", "Visita no Lar"]
+        idx_tipo = (
+            0
+            if reg_atual["tipo"] in opcoes_tipo
+            and reg_atual["tipo"] == "Aconselhamento"
+            else (1 if reg_atual["tipo"] in opcoes_tipo else 0)
+        )
+        novo_tipo_atend = c_ed3.selectbox(
+            "Tipo de Atendimento",
+            opcoes_tipo,
+            index=idx_tipo,
+            key=f"tipo_{id_selecionado}",
+        )
+        novo_motivo = c_ed4.text_input(
+            "Foco / Desafio",
+            value=str(reg_atual["motivo"]),
+            key=f"motivo_{id_selecionado}",
+        )
+        nova_data = c_ed5.text_input(
+            "Data do Atendimento",
+            value=str(reg_atual["data_atendimento"]),
+            key=f"data_{id_selecionado}",
+        )
+
+        nova_desc = st.text_area(
+            "Detalhes (Orientação, Oração, etc.)",
+            value=str(reg_atual["descricao"]),
+            key=f"desc_{id_selecionado}",
+        )
+
+        col_b1, col_b2 = st.columns(2)
+        salvar_edicao = col_b1.form_submit_button(
+            "💾 Salvar Alterações", type="primary", use_container_width=True
+        )
+        excluir_atendimento = col_b2.form_submit_button(
+            "🗑️ Excluir este Registro",
+            type="secondary",
+            use_container_width=True,
+        )
+
+        if salvar_edicao:
+          conn = None
+          try:
+            conn = _conectar_neon()
+            with conn.cursor() as cur:
+              cur.execute(
+                  """
+                                    UPDATE registros_acompanhamento
+                                    SET casal_alvo = %s,
+                                        casal_lider = %s,
+                                        tipo = %s,
+                                        motivo = %s,
+                                        data_atendimento = %s,
+                                        descricao = %s
+                                    WHERE id = %s
+                                """,
+                  (
+                      novo_casal_alvo,
+                      novo_lider_resp,
+                      novo_tipo_atend,
+                      novo_motivo,
+                      nova_data,
+                      nova_desc,
+                      id_selecionado,
+                  ),
+              )
+            conn.commit()
+            st.success("✅ Registro atualizado com sucesso no Neon!")
+            st.rerun()
+          except Exception as e:
+            st.error(f"❌ Erro ao atualizar registo no Neon: {e}")
+          finally:
+            if conn is not None:
+              try:
+                conn.close()
+              except Exception:
+                pass
+
+        if excluir_atendimento:
+          conn = None
+          try:
+            conn = _conectar_neon()
+            with conn.cursor() as cur:
+              cur.execute(
+                  "DELETE FROM registros_acompanhamento WHERE id = %s",
+                  (id_selecionado,),
+              )
+            conn.commit()
+            st.success("🗑️ Registro de atendimento removido com sucesso do Neon!")
+            st.rerun()
+          except Exception as e:
+            st.error(f"❌ Erro ao excluir registo no Neon: {e}")
+          finally:
+            if conn is not None:
+              try:
+                conn.close()
+              except Exception:
+                pass
+
+  else:
+    st.info(
+        "ℹ️ Nenhum acompanhamento registrado no banco de dados ainda. Utilize"
+        " a barra lateral para registrar o primeiro atendimento."
+    )
+
+# --- 9. OPÇÃO "AGENDA" ---
+elif acao == "agenda":
+  agenda.modulo_agenda()
+
+# --- BOTÃO SAIR DO SISTEMA ---
+st.markdown("<br><br>", unsafe_allow_html=True)
+cols_centro = st.columns([2, 1, 2])
+with cols_centro[1]:
+  if st.button(
+      "🚪 Sair do Sistema", use_container_width=True, key="btn_sair_sistema"
+  ):
+    st.session_state["logado_agora"] = False
+    st.session_state["acao_gestao"] = "listar"
+    st.rerun()
+
+# --- REGISTRO DE ACOMPANHAMENTO NA BARRA LATERAL (PROTEGIDO) ---
+# Só será desenhado na barra lateral se o usuário estiver autenticado (logado_agora = True)
+if st.session_state.get("logado_agora", False):
+  st.sidebar.markdown("---")
+  st.sidebar.subheader("📝 Registrar Acompanhamento")
+
+  try:
+    col_n1_lat = db.obter_coluna_segura(df, ["Nome completo", "Nome"], 1)
+    col_n2_lat = db.obter_coluna_segura(df, ["cônjuge", "conjuge"], 7)
+  except Exception:
+    col_n1_lat = ""
+    col_n2_lat = ""
+
+  lista_casais = []
+  try:
+    if not df.empty:
+      for num_seq, (idx, row) in enumerate(df.iterrows(), start=1):
+        eh_lider = str(row.get("Perfil", "")) == "⭐ Líder"
+
+        # OCULTA OS LÍDERES DA LISTA DE CASAIS ACOMPANHADOS
+        if eh_lider:
+          continue
+
+        n1 = str(row.get(col_n1_lat, ""))
+        n2 = str(row.get(col_n2_lat, ""))
+        nome_formatado = f"{n1} & {n2}" if n2 else n1
+        lista_casais.append(f"{num_seq}: {nome_formatado}")
+    else:
+      lista_casais = ["Nenhum casal disponível"]
+  except Exception:
+    lista_casais = ["Nenhum casal disponível"]
+
+  casal_escolhido = st.sidebar.selectbox(
+      "Casal Sendo Acompanhado",
+      lista_casais if lista_casais else ["Nenhum casal disponível"],
+  )
+
+  try:
+    df_lideres_atuais = df[df["Perfil"] == "⭐ Líder"]
+    lista_lideres_resp = []
+    for _, row in df_lideres_atuais.iterrows():
+      ln1 = str(row.get(col_n1_lat, ""))
+      ln2 = str(row.get(col_n2_lat, ""))
+      if ln1 or ln2:
+        lista_lideres_resp.append(f"{ln1} & {ln2}" if ln2 else ln1)
+    if not lista_lideres_resp:
+      lista_lideres_resp = ["Nenhum líder cadastrado"]
+  except Exception:
+    lista_lideres_resp = [
+        "Marcelo & Gilmara",
+        "Tony & Jessica",
+        "Bruno & Marluce",
+        "Jessica & Arlindo",
+        "Thiago & Amanda",
+    ]
+
+  casal_lider_resp = st.sidebar.selectbox(
+      "Casal Líder Responsável",
+      lista_lideres_resp,
+  )
+
+  tipo_acao = st.sidebar.selectbox(
+      "Tipo de Atendimento", ["Aconselhamento", "Visita no Lar"]
+  )
+
+  foco_atendimento = st.sidebar.selectbox(
+      "🎯 Foco / Desafio do Atendimento",
+      [
+          "Brigas Conjugais / Conflitos",
+          "Infidelidade",
+          "Violência Doméstica",
+          "Vícios",
+          "Processo de Separação",
+          "Outros / Geral",
+      ],
+  )
+
+  data_padrao_hoje = datetime.now().strftime("%d/%m/%Y")
+  data_atendimento_str = st.sidebar.text_input(
+      "Data do Atendimento (DD/MM/AAAA)", value=data_padrao_hoje
+  )
+
+  descricao_detalhes = st.sidebar.text_area(
+      "Detalhes (Oração, orientações, auxílio, etc.)"
+  )
+
+  if st.sidebar.button("Salvar Registro de Acompanhamento"):
+    if (
+        casal_escolhido
+        and casal_escolhido != "Nenhum casal disponível"
+        and descricao_detalhes
+    ):
+      conn = None
+      try:
+        conn = _conectar_neon()
+        with conn.cursor() as cursor:
+          cursor.execute(
+              """
+                            INSERT INTO registros_acompanhamento
+                                (casal_alvo, casal_lider, tipo, motivo, data_atendimento, descricao)
+                            VALUES (%s, %s, %s, %s, %s, %s)
+                        """,
+              (
+                  casal_escolhido,
+                  casal_lider_resp,
+                  tipo_acao,
+                  foco_atendimento,
+                  data_atendimento_str,
+                  descricao_detalhes,
+              ),
+          )
+        conn.commit()
+        st.sidebar.success(
+            "✅ Acompanhamento registrado e salvo no Neon com sucesso!"
+        )
+        st.rerun()
+      except Exception as e:
+        st.sidebar.error(f"❌ Erro ao salvar no Neon: {e}")
+      finally:
+        if conn is not None:
+          try:
+            conn.close()
+          except Exception:
+            pass
+    else:
+      st.sidebar.error("Preencha todos os campos e selecione um casal válido.")

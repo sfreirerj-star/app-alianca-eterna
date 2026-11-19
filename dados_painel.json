@@ -1,14 +1,14 @@
 {
     "estudo": {
-        "destino": "Toda a Igreja",
-        "texto": ""
+        "texto": "",
+        "destino": "Toda a Igreja"
     },
     "recado": {
-        "destino": "Toda a Igreja",
-        "texto": ""
+        "texto": "",
+        "destino": "Toda a Igreja"
     },
     "casais_msg": {
-        "texto": ""
+        "texto": "Em Breve, novidades!"
     },
     "devocional": {
         "data": "19/11/2026",

@@ -6,3 +6,12 @@ secrets.toml
 .streamlit/secrets.toml
 senhaneon.txt
 __pycache__/
+
+_backup_local/
+build/
+dist/
+*.db
+*.sqlite*
+*.spec
+*.bat
+*.vbs

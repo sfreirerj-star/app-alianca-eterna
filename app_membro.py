@@ -352,7 +352,7 @@ st.markdown(
 st.markdown(
     """
 <div style="margin: 15px 0;">
-    <a href="https://instagram.com/admucuripe" target="_blank" style="display:inline-block; padding:12px 24px; font-size:16px; font-weight:bold; color:white; background-color:#E1306C; text-align:center; text-decoration:none; border-radius:8px; box-shadow: 0px 4px 6px rgba(0,0,0,0.1);">
+    <https://www.instagram.com/admapsede?gwpx=MWRyeWczd29yMjFxbg==>
         📸 Acessar Instagram @admucuripe
     </a>
 </div>
